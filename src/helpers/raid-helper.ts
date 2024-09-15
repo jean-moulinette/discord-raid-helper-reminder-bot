@@ -70,3 +70,39 @@ export async function fetchRaidHelperPostedEvents() {
     return [];
   }
 }
+
+export async function deleteRaidHelperEvent(eventId: string) {
+  try {
+    const response = await axios.delete(`https://raid-helper.dev/api/v2/events/${eventId}`, {
+      headers: {
+        'Authorization': `${process.env.RAID_HELPER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    return response.status;
+  } catch (error) {
+    console.error('Error deleting event from Raid-Helper:', error);
+    return;
+  }
+}
+
+export async function createRaidHelperEvent(channelId: string, date: string) {
+  try {
+    const response = await axios.post(`https://raid-helper.dev/api/v2/servers/${process.env.GUILD_ID}/channels/${channelId}/event`, {
+      leaderId: process.env.RAID_LEAD_USER_ID,
+      templateId: process.env.RAID_HELPER_TEMPLATE_ID,
+      date,
+    }, {
+      headers: {
+        'Authorization': `${process.env.RAID_HELPER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    return response.status;
+  } catch (error) {
+    console.error('Error creating event in Raid-Helper:', error);
+    return;
+  }
+}

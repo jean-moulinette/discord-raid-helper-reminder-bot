@@ -85,14 +85,29 @@ export async function getRaidHelpersChannels(client: Client) {
 
 export async function getDiscordChannel(client: Client, channelId: string) {
   try {
-    const guild = await getGuild(client);
-    const channel = await client.channels.cache.get(channelId);
-  
-    return channel;
+    return await client.channels.cache.get(channelId);
   } catch (e) {
     if (e instanceof Error) {
       throw Error(`Error fetching channel ${e.message}`);
     }
     throw Error('Error fetching channel');
+  }
+}
+
+export async function getDiscordRoleByName(client: Client, roleName: string) {
+  try {
+    const guild = await getGuild(client);
+    const role = guild.roles.cache.find(({ name }) => name === roleName);
+  
+    if (!role) {
+      throw Error(`Could not find role with name ${roleName}`);
+    }
+  
+    return role;
+  } catch (e) {
+    if (e instanceof Error) {
+      throw Error(`Error fetching role ${e.message}`);
+    }
+    throw Error('Error fetching role');
   }
 }

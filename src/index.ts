@@ -1,8 +1,8 @@
 import dotenv from 'dotenv'
 import cron from 'node-cron';
 import { Client, GatewayIntentBits, Partials } from 'discord.js'
-import { getNextRaidInTwoDays, tagMissingSignees } from './helpers/raids';
-import { CRON_SCHEDULE_EVERY_DAYS_AT_6PM } from './consts'
+import { getNextRaidInTwoDays, recreateNextWeekRaidHelper, recreateRaidHelperChannelThread, removeFirstExpiredRaidHelper, tagMissingSignees } from './helpers/raids';
+import { CRON_SCHEDULE_EVERY_DAYS_AT_6PM, CROM_SCHEDULE_EVERY_DAYS_AT_MIDNIGHT } from './consts'
 import { fetchRaidHelperPostedEvents, PostedRaidHelperEvent } from './helpers/raid-helper';
 
 dotenv.config()
@@ -31,10 +31,19 @@ client.once('ready', () => {
 
   console.log(`Logged in as ${client.user.tag}!`);
 
+  // Schedule job to notify about missing signees in raid helper
   cron.schedule(CRON_SCHEDULE_EVERY_DAYS_AT_6PM, () => {
     console.log('Running log police watch job');
     logPoliceWatch();
   });
+
+  // Schedule job to clean up raid helpers channel
+  cron.schedule(CROM_SCHEDULE_EVERY_DAYS_AT_MIDNIGHT, () => {
+    console.log('Running raid-helper cleanup job');
+    cleanUpRaidHelpersChannel();
+  });
+
+  cleanUpRaidHelpersChannel();
 });
 
 client.login(process.env.DISCORD_TOKEN);
@@ -59,6 +68,29 @@ async function logPoliceWatch() {
   } catch (e) {
     if (e instanceof Error) {
       console.error('Error in logPoliceWatch:', e.message);
+    }
+  }
+}
+
+async function cleanUpRaidHelpersChannel() {
+  try {
+    const result = await removeFirstExpiredRaidHelper();
+  
+    if (!result || !result.channelIdToRecreateRh || !result.removedEventStartTime) {
+      console.log('No raid helpers found to recreate');
+      return;
+    }
+  
+    const { channelIdToRecreateRh, removedEventStartTime } = result;
+  
+    const nextRaidDate = await recreateNextWeekRaidHelper(channelIdToRecreateRh, removedEventStartTime);
+  
+    await recreateRaidHelperChannelThread(client, channelIdToRecreateRh, nextRaidDate);
+  
+    console.log('Raid helpers cleanup complete');
+  } catch (e) {
+    if (e instanceof Error) {
+      console.error('Error in cleanUpRaidHelpersChannel:', e.message);
     }
   }
 }
