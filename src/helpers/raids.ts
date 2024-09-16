@@ -244,3 +244,21 @@ export async function recreateRaidHelperChannelThread(
     throw Error("Error recreating raid helper channel thread");
   }
 }
+
+export async function pingOfficersWithBotFailure(
+  client: Client,
+  failedTaskDescription: string
+) {
+  try {
+    const guildOfficers = await getAllOfficersMembers(client);
+    for (const [, officer] of guildOfficers) {
+      await officer.send(
+        `Bonjour officier,\n\nJe viens de rencontrer un problème technique sur le job suivant:\n${failedTaskDescription}\n\nIl est possible que le job ce soit arrêté en plein milieu, merci de vérifier ce qu'il s'est passé sur le discord et de finir à la main.\n\nN'oubliez pas de ping Natema pour lui signaler ce problème :).`
+      );
+    }
+  } catch (e) {
+    if (e instanceof Error) {
+      console.error("Error in pingOfficersWithBotFailure:", e.message);
+    }
+  }
+}

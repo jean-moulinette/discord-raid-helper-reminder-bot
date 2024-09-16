@@ -3,6 +3,7 @@ import cron from "node-cron";
 import { Client, GatewayIntentBits, Partials } from "discord.js";
 import {
   getNextRaidInTwoDays,
+  pingOfficersWithBotFailure,
   recreateNextWeekRaidHelper,
   recreateRaidHelperChannelThread,
   removeFirstExpiredRaidHelper,
@@ -105,6 +106,10 @@ async function logPoliceWatch(client: Client) {
     if (e instanceof Error) {
       console.error("Error in logPoliceWatch:", e.message);
     }
+    await pingOfficersWithBotFailure(
+      client,
+      "Vérification des membres inscrits pour le prochain raid et notification dans le fil RH des membres ayant oublié de s'inscrire"
+    );
   }
 }
 
@@ -139,6 +144,11 @@ async function cleanUpRaidHelpersChannel(client: Client) {
     if (e instanceof Error) {
       console.error("Error in cleanUpRaidHelpersChannel:", e.message);
     }
+
+    await pingOfficersWithBotFailure(
+      client,
+      "Suppréssion du dernier raid helper expiré et création de celui de la semaine prochaine."
+    );
   }
 }
 
