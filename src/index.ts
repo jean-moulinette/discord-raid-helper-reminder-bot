@@ -16,49 +16,77 @@ import {
   fetchRaidHelperPostedEvents,
   PostedRaidHelperEvent,
 } from "./helpers/raid-helper";
+import { testServicesConnection } from "./helpers/services-check";
+import { getDiscordClient, onDiscordClientError } from "./helpers/discord";
 
 dotenv.config();
 
 const ACTIVE_RAID_HELPERS: PostedRaidHelperEvent[] = [];
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.DirectMessages,
-  ],
-  partials: [
-    Partials.Message,
-    Partials.Channel,
-    Partials.Reaction,
-    Partials.User,
-  ],
-});
+main();
 
-client.once("ready", () => {
+async function main() {
+  const client = getDiscordClient();
+  client
+    .once("ready", onDiscordClientReady)
+    .once("error", onDiscordClientError);
+  try {
+    await client.login(process.env.DISCORD_TOKEN);
+  } catch (e) {
+    if (e instanceof Error) {
+      console.error("Error while logging in to discord client:", e.message);
+    } else {
+      console.error("Error while logging in to discord client:", e);
+    }
+    console.error(
+      "Killing bot due to failed login, make sure your DISCORD_TOKEN is correct in .env file"
+    );
+    killBot();
+  }
+  await healthCheck(client);
+}
+
+function onDiscordClientReady(client: Client) {
   if (!client.user) {
     throw Error("No client user");
   }
 
-  console.log(`Logged in as ${client.user.tag}!`);
+  console.log(`Bot successfully logged in as "${client.user.displayName}"!`);
 
   // Schedule job to notify about missing signees in raid helper
   cron.schedule(CRON_SCHEDULE_EVERY_DAYS_AT_6PM, () => {
     console.log("Running log police watch job");
-    logPoliceWatch();
+    logPoliceWatch(client);
   });
 
   // Schedule job to clean up raid helpers channel
   cron.schedule(CRON_SCHEDULE_EVERY_DAYS_AT_MIDNIGHT, () => {
     console.log("Running raid-helper cleanup job");
-    cleanUpRaidHelpersChannel();
+    cleanUpRaidHelpersChannel(client);
   });
-});
 
-client.login(process.env.DISCORD_TOKEN);
+  console.log("\n\nScheduled jobs successfully started\n");
+  console.log("Missing signs ups will be notified at 06:00pm every day");
+  console.log("Raid helpers cleanup will be done at 00:05am every day");
+}
 
-async function logPoliceWatch() {
+async function healthCheck(client: Client) {
+  try {
+    await testServicesConnection(client);
+  } catch (e) {
+    console.error(
+      "Killing bot due to failed health check, check logs for more info"
+    );
+    killBot();
+  }
+  console.log("\nAll services are up and running");
+}
+
+function killBot() {
+  process.exit(1);
+}
+
+async function logPoliceWatch(client: Client) {
   try {
     // Update bot memory with active raid helpers
     await hydrateActiveRaidHelpers();
@@ -80,7 +108,7 @@ async function logPoliceWatch() {
   }
 }
 
-async function cleanUpRaidHelpersChannel() {
+async function cleanUpRaidHelpersChannel(client: Client) {
   try {
     const result = await removeFirstExpiredRaidHelper();
 

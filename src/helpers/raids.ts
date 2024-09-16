@@ -192,7 +192,7 @@ export async function recreateNextWeekRaidHelper(
     return nextRaidDate;
   } catch (e) {
     if (e instanceof Error) {
-      console.error("Error recreating next week raid helper:", e.message);
+      throw Error(`Error recreating next week raid helper: ${e.message}`);
     }
     throw Error("Error recreating next week raid helper");
   }

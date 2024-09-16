@@ -1,5 +1,26 @@
-import { Client } from "discord.js";
+import { Client, GatewayIntentBits, Partials } from "discord.js";
 
+export function getDiscordClient() {
+  return new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.DirectMessages,
+    ],
+    partials: [
+      Partials.Message,
+      Partials.Channel,
+      Partials.Reaction,
+      Partials.User,
+    ],
+  });
+}
+
+export function onDiscordClientError(error: Error) {
+  console.error("Discord client error:", error);
+  throw error;
+}
 export async function getGuild(client: Client) {
   try {
     const guild = client.guilds.fetch(process.env.GUILD_ID as string);

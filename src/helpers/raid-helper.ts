@@ -70,9 +70,11 @@ export async function fetchRaidHelperPostedEvents() {
     );
     const events = response.data.postedEvents;
     return events;
-  } catch (error) {
-    console.error("Error fetching events from Raid-Helper:", error);
-    return [];
+  } catch (e) {
+    if (e instanceof Error) {
+      throw Error(`Error fetching events from Raid-Helper ${e.message}`);
+    }
+    throw Error("Error fetching events from Raid-Helper");
   }
 }
 
@@ -89,9 +91,11 @@ export async function deleteRaidHelperEvent(eventId: string) {
     );
 
     return response.status;
-  } catch (error) {
-    console.error("Error deleting event from Raid-Helper:", error);
-    return;
+  } catch (e) {
+    if (e instanceof Error) {
+      throw Error(`Error deleting event from Raid-Helper ${e.message}`);
+    }
+    throw Error("Error deleting event from Raid-Helper");
   }
 }
 
@@ -113,8 +117,11 @@ export async function createRaidHelperEvent(channelId: string, date: string) {
     );
 
     return response.status;
-  } catch (error) {
-    console.error("Error creating event in Raid-Helper:", error);
-    return;
+  } catch (e) {
+    if (e instanceof Error) {
+      throw Error(`Error creating event in Raid-Helper ${e.message}`);
+    }
+
+    throw Error("Error creating event in Raid-Helper");
   }
 }
