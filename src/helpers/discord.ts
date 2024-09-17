@@ -38,7 +38,7 @@ export async function getGuild(client: Client) {
   }
 }
 
-export async function getAllRaidersMembers(client: Client) {
+export async function getAllRaidersMembers(client: Client, shouldFilterAbsentPlayers = false) {
   try {
     const guild = await getGuild(client);
     await guild.members.fetch();
@@ -46,16 +46,33 @@ export async function getAllRaidersMembers(client: Client) {
     const guildRaiderRole = guild.roles.cache.find(
       ({ name }) => name === (process.env.RAIDER_ROLE_NAME as string)
     );
+    const guildAbsentRaiderRole = guild.roles.cache.find(
+      ({ name }) => name === (process.env.ABSENT_RAIDER_ROLE_NAME as string)
+    );
 
     if (!guildRaiderRole) {
       throw Error(
         "Raider role not found in server, make sure the role you configured for the bot, is matching with the raider role text you got in your discord server"
       );
     }
+    if (!guildAbsentRaiderRole) {
+      throw Error(
+        "Absent raider role not found in server, make sure the role you configured for the bot, is matching with the absent raider role text you got in your discord server"
+      );
+    }
 
-    const raiderMembers = guildRaiderRole.members.filter(
-      (member) => !member.user.bot
-    );
+    const raiderMembers = guildRaiderRole.members.filter((member) => {
+      if (member.user.bot) {
+        return false;
+      }
+
+      if (shouldFilterAbsentPlayers) {
+        const memberIsAbsent = guildAbsentRaiderRole.members.some(absentMember => absentMember.id === member.id);
+        return !memberIsAbsent;
+      }
+
+      return true;
+    });
 
     return raiderMembers;
   } catch (e) {
@@ -66,7 +83,31 @@ export async function getAllRaidersMembers(client: Client) {
   }
 }
 
-export async function getAllOfficersMembers(client: Client) {
+export async function getAllAbsentPlayers(client: Client) {
+  try {
+    const guild = await getGuild(client);
+    await guild.members.fetch();
+
+    const absentRole = guild.roles.cache.find(
+      ({ name }) => name === (process.env.ABSENT_RAIDER_ROLE_NAME as string)
+    );
+
+    if (!absentRole) {
+      throw Error(
+        "Absent role not found in server, make sure the role you configured for the bot, is matching with the absent role text you got in your discord server"
+      );
+    }
+
+    return absentRole.members;
+  } catch (e) {
+    if (e instanceof Error) {
+      throw Error(`Error fetching absent players ${e.message}`);
+    }
+    throw Error("Error fetching absent players");
+  }
+}
+
+export async function getAllOfficersMembers(client: Client, shouldFilterAbsentPlayers = false) {
   try {
     const guild = await getGuild(client);
     await guild.members.fetch();
@@ -74,15 +115,33 @@ export async function getAllOfficersMembers(client: Client) {
     const officersRole = guild.roles.cache.find(
       ({ name }) => name === (process.env.OFFICER_ROLE_NAME as string)
     );
+    const absentRole = guild.roles.cache.find(
+      ({ name }) => name === (process.env.ABSENT_RAIDER_ROLE_NAME as string)
+    );
 
     if (!officersRole) {
       throw Error(
         "Officer role not found in server, make sure the role you configured for the bot, is matching with the officer role text you got in your discord server"
       );
     }
+    if (!absentRole) {
+      throw Error(
+        "Absent not found in server, make sure the role you configured for the bot, is matching with the absent officer role text you got in your discord server"
+      );
+    }
 
     const officersMembers = officersRole.members.filter(
-      (member) => !member.user.bot
+      (member) => {
+        if (member.user.bot) {
+          return false;
+        }
+
+        if (shouldFilterAbsentPlayers) {
+          const memberIsAbsent = absentRole.members.some(absentMember => absentMember.id === member.id);
+          return !memberIsAbsent;
+        }
+        return true;
+      }
     );
 
     return officersMembers;
@@ -121,7 +180,7 @@ export async function getRaidHelpersChannels(client: Client) {
 
 export async function getDiscordChannel(client: Client, channelId: string) {
   try {
-    return await client.channels.cache.get(channelId);
+    return await client.channels.fetch(channelId);
   } catch (e) {
     if (e instanceof Error) {
       throw Error(`Error fetching channel ${e.message}`);

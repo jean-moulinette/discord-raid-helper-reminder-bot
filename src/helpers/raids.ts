@@ -1,5 +1,6 @@
 import { channelMention, Client, roleMention, userMention } from "discord.js";
 import {
+  getAllAbsentPlayers,
   getAllOfficersMembers,
   getAllRaidersMembers,
   getDiscordChannel,
@@ -38,8 +39,9 @@ export async function tagMissingSignees(
   nextRaid: PostedRaidHelperEvent
 ) {
   try {
-    const guildRaiders = await getAllRaidersMembers(client);
-    const guildOfficers = await getAllOfficersMembers(client);
+    const guildRaiders = await getAllRaidersMembers(client, true);
+    const guildOfficers = await getAllOfficersMembers(client, true);
+    const absentPlayers = await getAllAbsentPlayers(client);
     const rhEventDiscordChannel = await getDiscordChannel(
       client,
       nextRaid.channelId
@@ -49,8 +51,14 @@ export async function tagMissingSignees(
     if (!rhEventDiscordChannel || !rhEventDiscordChannel.isSendable()) {
       throw Error("Could not find raid helper channel or send message to it");
     }
-
+    
+    const rhEventDiscordMessage = await rhEventDiscordChannel.messages.fetch(nextRaid.id);
     const rhSignUps = await fetchRaidHelperEventSignUps(nextRaid.id);
+    const rhDiscordThread = rhEventDiscordMessage.thread;
+
+    if (!rhDiscordThread || !rhDiscordThread.isSendable()) {
+      throw Error("Could not find raid helper thread or send message to it");
+    }
 
     const nonSignees = guildRaiders.filter(
       (raider) => !rhSignUps.find((signee) => signee.userId === raider.id)
@@ -64,6 +72,10 @@ export async function tagMissingSignees(
       day: "numeric",
     });
 
+    const absentPlayersMentions = absentPlayers.size && absentPlayers.map((absentPlayer) => `- ${userMention(absentPlayer.id)}`).join("\n");
+    const absentPlayersReport = absentPlayersMentions && `Les joueurs suivants ont signalé leurs absence:\n\n${absentPlayersMentions}\n\nPensez à retirer leur rôle "Absent" si ils ne le sont plus.`
+
+
     if (!nonSignees.size) {
       for (const [, officer] of guildOfficers) {
         await officer.send(
@@ -71,6 +83,9 @@ export async function tagMissingSignees(
             nextRaid.channelId
           )}\n**Prévu pour le ${nextRaidfrenchHumanReadableDate}**.\n\nMerci de bien vouloir vérifier que la composition est postée :)`
         );
+        if (absentPlayersReport) {
+          await officer.send(absentPlayersReport);
+        }
       }
       return;
     }
@@ -85,9 +100,13 @@ export async function tagMissingSignees(
           nextRaid.channelId
         )}\n**Prévu pour le ${nextRaidfrenchHumanReadableDate}**:\n\n${nonSigneesMentions}\n\nMerci de bien vouloir vérifier que la composition est postée :)`
       );
+
+      if (absentPlayersReport) {
+        await officer.send(absentPlayersReport);
+      }
     }
 
-    await rhEventDiscordChannel.send(
+    await rhDiscordThread.send(
       `Bonjour les raideurs !\nLa police des logs vient de détecter que les raiders suivants ne sont pas inscrits sur le raid:\n${nonSigneesMentions}\nMerci de bien vouloir nous donner votre dispo sur le raid-helper pour faciliter l'organisation du raid :)`
     );
   } catch (e) {
@@ -250,7 +269,7 @@ export async function pingOfficersWithBotFailure(
   failedTaskDescription: string
 ) {
   try {
-    const guildOfficers = await getAllOfficersMembers(client);
+    const guildOfficers = await getAllOfficersMembers(client, true);
     for (const [, officer] of guildOfficers) {
       await officer.send(
         `Bonjour officier,\n\nJe viens de rencontrer un problème technique sur le job suivant:\n${failedTaskDescription}\n\nIl est possible que le job ce soit arrêté en plein milieu, merci de vérifier ce qu'il s'est passé sur le discord et de finir à la main.\n\nN'oubliez pas de ping Natema pour lui signaler ce problème :).`
