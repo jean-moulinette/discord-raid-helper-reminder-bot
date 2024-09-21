@@ -1,4 +1,4 @@
-import { channelMention, Client, roleMention, userMention } from "discord.js";
+import { channelMention, ChannelType, Client, roleMention, userMention } from "discord.js";
 import {
   getAllAbsentPlayers,
   getAllOfficersMembers,
@@ -117,7 +117,7 @@ export async function tagMissingSignees(
   }
 }
 
-export async function removeFirstExpiredRaidHelper() {
+export async function removeFirstExpiredRaidHelper(client: Client) {
   try {
     const latestRhEvents = await fetchRaidHelperPostedEvents();
     let channelIdToRecreateRh = null;
@@ -131,6 +131,18 @@ export async function removeFirstExpiredRaidHelper() {
     // Itterate over all raid helpers and delete the one that just ended
     for (const rhEvent of latestRhEvents) {
       const { endTime, startTime, id, title, channelId } = rhEvent;
+
+      const discordChannel = await getDiscordChannel(client, channelId);
+
+      if (!discordChannel) {
+        throw Error("Raid helper discord event channel not found");
+      }
+      if (discordChannel.type === ChannelType.GuildText && discordChannel.parentId !== process.env.RAID_CATEGORY_ID) {
+        console.log(`Skipping raid helper event because channel not in raid category : ${discordChannel.name}`);
+        continue;
+      }
+
+
       const rhEventEndTime = new Date(endTime * 1000);
       const currentTime = new Date();
 

@@ -71,7 +71,7 @@ async function logPoliceWatch(client: Client) {
 
 async function cleanUpRaidHelpersChannel(client: Client) {
   try {
-    const result = await removeFirstExpiredRaidHelper();
+    const result = await removeFirstExpiredRaidHelper(client);
 
     if (
       !result ||
