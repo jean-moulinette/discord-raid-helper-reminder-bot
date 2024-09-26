@@ -132,6 +132,14 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
     for (const rhEvent of latestRhEvents) {
       const { endTime, startTime, id, title, channelId } = rhEvent;
 
+      console.log('Checking raid helper event:', title);
+      console.log('Start time:', new Date(startTime * 1000).toLocaleString());
+      console.log('End time:', new Date(endTime * 1000).toLocaleString());
+      console.log('Channel id:', channelId);
+      console.log('All events found:', latestRhEvents.map((rhEvent) =>  {
+        rhEvent.title
+      }));
+
       const discordChannel = await getDiscordChannel(client, channelId);
 
       if (!discordChannel) {
