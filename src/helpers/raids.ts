@@ -136,9 +136,7 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
       console.log('Start time:', new Date(startTime * 1000).toLocaleString());
       console.log('End time:', new Date(endTime * 1000).toLocaleString());
       console.log('Channel id:', channelId);
-      console.log('All events found:', latestRhEvents.map((rhEvent) =>  {
-        rhEvent.title
-      }));
+      console.log('All events found:', latestRhEvents);
 
       const discordChannel = await getDiscordChannel(client, channelId);
 
