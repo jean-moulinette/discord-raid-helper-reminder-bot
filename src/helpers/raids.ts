@@ -131,10 +131,19 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
     // Itterate over all raid helpers and delete the one that just ended
     for (const rhEvent of latestRhEvents) {
       const { endTime, startTime, id, title, channelId } = rhEvent;
-      const discordChannel = await getDiscordChannel(client, channelId);
+      let discordChannel = null;
+
+      try {
+        discordChannel = await getDiscordChannel(client, channelId);        
+      } catch (e) {
+        if (e instanceof Error) {
+          console.error(`Error fetching discord channel for raid helper event: ${title}`, e.message);
+        }
+        continue;
+      }
 
       if (!discordChannel) {
-        console.error("Raid helper discord event channel not found");
+        console.error(`Raid helper discord event channel not found for event: ${title}`);
         continue;
       }
       if (discordChannel.type === ChannelType.GuildText && discordChannel.parentId !== process.env.RAID_CATEGORY_ID) {
