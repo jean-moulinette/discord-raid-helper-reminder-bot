@@ -99,13 +99,14 @@ export async function deleteRaidHelperEvent(eventId: string) {
   }
 }
 
-export async function createRaidHelperEvent(channelId: string, date: string) {
+export async function createRaidHelperEvent(channelId: string, date: string, title?: string) {
   try {
     const response = await axios.post(
       `https://raid-helper.dev/api/v2/servers/${process.env.GUILD_ID}/channels/${channelId}/event`,
       {
         leaderId: process.env.RAID_LEAD_USER_ID,
         templateId: process.env.RAID_HELPER_TEMPLATE_ID,
+        title,
         advancedSettings: {
           vacuum: true,
           tentative_emote: 'remove',

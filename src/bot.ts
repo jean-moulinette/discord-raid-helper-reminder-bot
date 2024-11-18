@@ -84,7 +84,7 @@ async function logPoliceWatchForRaidInTwoDays(client: Client) {
     // Find raid that will happen in 2 days from start time in unix timestamp
     const nextRaid = getNextRaidInTwoDays(ACTIVE_RAID_HELPERS);
 
-    if (!nextRaid || nextRaid?.title.toLowerCase() !== 'reroll') {
+    if (!nextRaid || nextRaid?.title.toLowerCase() !== process.env.OPTIONAL_RAID_TITLE?.toLowerCase()) {
       console.log("No optional raid found in 2 days. Exiting...");
       return;
     }
@@ -115,11 +115,12 @@ async function cleanUpRaidHelpersChannel(client: Client) {
       return;
     }
 
-    const { channelIdToRecreateRh, removedEventStartTime } = result;
+    const { channelIdToRecreateRh, removedEventStartTime, raidHelperTitleToRecreate } = result;
 
     const nextRaidDate = await recreateNextWeekRaidHelper(
       channelIdToRecreateRh,
-      removedEventStartTime
+      removedEventStartTime,
+      raidHelperTitleToRecreate,
     );
 
     await recreateRaidHelperChannelThread(

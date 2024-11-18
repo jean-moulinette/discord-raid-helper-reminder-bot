@@ -39,7 +39,7 @@ export function getNextTwoMainRaids(listOfRaids: PostedRaidHelperEvent[]) {
   const today = new Date();
   const twoNextRaids = listOfRaids
     .filter((rhEvent) => {
-      if (rhEvent.title.toLowerCase() === 'reroll') {
+      if (rhEvent.title.toLowerCase() === process.env.OPTIONAL_RAID_TITLE?.toLowerCase()) {
         return false;
       }
 
@@ -141,6 +141,7 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
     const latestRhEvents = await fetchRaidHelperPostedEvents();
     let channelIdToRecreateRh = null;
     let removedEventStartTime = null;
+    let raidHelperTitleToRecreate = undefined;
 
     if (!latestRhEvents.length) {
       console.log("No raid helpers found");
@@ -177,6 +178,7 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
       // if rhEvent is already over, delete it
       if (rhEventEndTime < currentTime) {
         await deleteRaidHelperEvent(id);
+        raidHelperTitleToRecreate = title.toLowerCase() === process.env.OPTIONAL_RAID_TITLE?.toLowerCase() ? title : undefined;
         removedEventStartTime = startTime;
         channelIdToRecreateRh = channelId;
         const humanDate = new Date(startTime * 1000).toLocaleDateString(
@@ -193,7 +195,7 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
       }
     }
 
-    return { channelIdToRecreateRh, removedEventStartTime };
+    return { channelIdToRecreateRh, removedEventStartTime, raidHelperTitleToRecreate };
   } catch (e) {
     if (e instanceof Error) {
       console.error("Error removing first expired raid helper:", e.message);
@@ -204,7 +206,8 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
 
 export async function recreateNextWeekRaidHelper(
   channelIdToRecreateRh: string,
-  removedEventStartTime: number
+  removedEventStartTime: number,
+  raidHelperTitleToRecreate?: string
 ) {
   try {
     const removedEventStartTimeMs = removedEventStartTime * 1000;
@@ -235,7 +238,7 @@ export async function recreateNextWeekRaidHelper(
 
     const nextRaidDateUnix = String(nextRaidDate.getTime() / 1000);
 
-    await createRaidHelperEvent(channelIdToRecreateRh, nextRaidDateUnix);
+    await createRaidHelperEvent(channelIdToRecreateRh, nextRaidDateUnix, raidHelperTitleToRecreate);
     console.log(
       "Next raid created on:",
       nextRaidDate.toLocaleString("fr-FR", {
