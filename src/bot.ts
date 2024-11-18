@@ -7,9 +7,11 @@ import {
 import {
   CRON_SCHEDULE_EVERY_DAYS_AT_6PM,
   CRON_SCHEDULE_EVERY_DAYS_AT_MIDNIGHT,
+  CRON_SCHEDULE_EVERY_TUESDAY_AT_6PM,
 } from "./consts";
 import {
   getNextRaidInTwoDays,
+  getNextTwoMainRaids,
   pingOfficersWithBotFailure,
   recreateNextWeekRaidHelper,
   recreateRaidHelperChannelThread,
@@ -26,10 +28,10 @@ export function startBot(client: Client) {
 
   console.log(`Bot successfully logged in as "${client.user.displayName}"!`);
 
-  // Schedule job to notify about missing signees in raid helper
+  // Schedule job to notify about missing signees in raid helper for next raid occurins in 2 days
   cron.schedule(CRON_SCHEDULE_EVERY_DAYS_AT_6PM, () => {
     console.log("Running log police watch job");
-    logPoliceWatch(client);
+    logPoliceWatchForRaidInTwoDays(client);
   });
 
   // Schedule job to clean up raid helpers channel
@@ -38,12 +40,43 @@ export function startBot(client: Client) {
     cleanUpRaidHelpersChannel(client);
   });
 
+  //Sechedule job to notify about main raids of the week
+  cron.schedule(CRON_SCHEDULE_EVERY_TUESDAY_AT_6PM, () => {
+    console.log("Running log police for main raids of the week job");
+    logPoliceForMainRaidsOfTheWeek(client);
+  }); 
+
   console.log("\nScheduled jobs successfully started\n");
-  console.log("- Missing signs ups will be notified at 06:00pm every day");
+  console.log("- Missing signs ups for main raids of the week will be notified at 06:00pm every tuesday");
+  console.log("- Missing signs ups for optional raids will be notified at 06:00pm every day starting from 2 days before the raid");
   console.log("- Raid helpers cleanup will be done at 00:05am every day");
 }
 
-async function logPoliceWatch(client: Client) {
+async function logPoliceForMainRaidsOfTheWeek(client: Client) {
+  try {
+    await hydrateActiveRaidHelpers();
+    const nextTwoMainRaids = getNextTwoMainRaids(ACTIVE_RAID_HELPERS);
+
+    if (!nextTwoMainRaids.length) {
+      console.log("No main raids found for the week. Exiting...");
+      return;
+    }
+
+    nextTwoMainRaids.forEach(async (raid) => {
+      await tagMissingSignees(client, raid);
+    });
+  } catch (e) {
+    if (e instanceof Error) {
+      console.error("Error in logPoliceForMainRaidsOfTheWeek:", e.message);
+    }
+    await pingOfficersWithBotFailure(
+      client,
+      "Vérification des membres inscrits pour les raids principaux de la semaine et notification dans le fil RH des membres ayant oublié de s'inscrire"
+    );
+  }
+}
+
+async function logPoliceWatchForRaidInTwoDays(client: Client) {
   try {
     // Update bot memory with active raid helpers
     await hydrateActiveRaidHelpers();
@@ -51,8 +84,8 @@ async function logPoliceWatch(client: Client) {
     // Find raid that will happen in 2 days from start time in unix timestamp
     const nextRaid = getNextRaidInTwoDays(ACTIVE_RAID_HELPERS);
 
-    if (!nextRaid) {
-      console.log("No raid found in 2 days. Exiting...");
+    if (!nextRaid || nextRaid?.title.toLowerCase() !== 'reroll') {
+      console.log("No optional raid found in 2 days. Exiting...");
       return;
     }
 

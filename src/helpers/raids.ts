@@ -34,6 +34,25 @@ export function getNextRaidInTwoDays(listOfRaids: PostedRaidHelperEvent[]) {
   });
 }
 
+
+export function getNextTwoMainRaids(listOfRaids: PostedRaidHelperEvent[]) {
+  const today = new Date();
+  const twoNextRaids = listOfRaids
+    .filter((rhEvent) => {
+      if (rhEvent.title.toLowerCase() === 'reroll') {
+        return false;
+      }
+
+      const raidDate = new Date(rhEvent.startTime * 1000);
+      return raidDate >= today;
+    })
+    .sort((a, b) => a.startTime - b.startTime)
+    .slice(0, 2);
+
+  return twoNextRaids;
+}
+
+
 export async function tagMissingSignees(
   client: Client,
   nextRaid: PostedRaidHelperEvent

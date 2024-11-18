@@ -106,6 +106,11 @@ export async function createRaidHelperEvent(channelId: string, date: string) {
       {
         leaderId: process.env.RAID_LEAD_USER_ID,
         templateId: process.env.RAID_HELPER_TEMPLATE_ID,
+        advancedSettings: {
+          vacuum: true,
+          tentative_emote: 'remove',
+          bench_emote: 'remove',
+        },
         date,
       },
       {
