@@ -7,7 +7,7 @@ import {
 import {
   CRON_SCHEDULE_EVERY_DAYS_AT_6PM,
   CRON_SCHEDULE_EVERY_DAYS_AT_MIDNIGHT,
-  CRON_SCHEDULE_EVERY_TUESDAY_AT_6PM,
+  CRON_SCHEDULE_EVERYTUESDAY_AT_6PM_AND_1_MINUTE,
 } from "./consts";
 import {
   getNextRaidInTwoDays,
@@ -41,7 +41,7 @@ export function startBot(client: Client) {
   });
 
   //Sechedule job to notify about main raids of the week
-  cron.schedule(CRON_SCHEDULE_EVERY_TUESDAY_AT_6PM, () => {
+  cron.schedule(CRON_SCHEDULE_EVERYTUESDAY_AT_6PM_AND_1_MINUTE, () => {
     console.log("Running log police for main raids of the week job");
     logPoliceForMainRaidsOfTheWeek(client);
   }); 

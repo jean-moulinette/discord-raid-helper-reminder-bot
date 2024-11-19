@@ -39,7 +39,8 @@ export function getNextTwoMainRaids(listOfRaids: PostedRaidHelperEvent[]) {
   const today = new Date();
   const twoNextRaids = listOfRaids
     .filter((rhEvent) => {
-      if (rhEvent.title.toLowerCase() === process.env.OPTIONAL_RAID_TITLE?.toLowerCase()) {
+      const isMainRaid = rhEvent.title === 'unnamed';
+      if (!isMainRaid) {
         return false;
       }
 
