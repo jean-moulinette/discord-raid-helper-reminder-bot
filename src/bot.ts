@@ -8,6 +8,9 @@ import {
   CRON_SCHEDULE_EVERY_DAYS_AT_6PM,
   CRON_SCHEDULE_EVERY_DAYS_AT_MIDNIGHT,
   CRON_SCHEDULE_EVERYTUESDAY_AT_6PM_AND_1_MINUTE,
+  HYDRATING_ACTIVE_RAIDS_ERROR,
+  OFFICERS_ERROR_MESSAGE_RAID_HELPER_DOWN_RAID_IN_TWO_DAYS,
+  OFFICERS_ERROR_MESSAGE_RAID_HELPER_DOWN_RAID_OF_WEEK,
 } from "./consts";
 import {
   getNextRaidInTwoDays,
@@ -53,8 +56,22 @@ export function startBot(client: Client) {
 }
 
 async function logPoliceForMainRaidsOfTheWeek(client: Client) {
+  
   try {
     await hydrateActiveRaidHelpers();
+  } catch (error) {
+    console.error("Error in logPoliceForMainRaidsOfTheWeek:", error);
+
+    if (error instanceof Error && error.message === HYDRATING_ACTIVE_RAIDS_ERROR) {
+      await pingOfficersWithBotFailure(
+        client,
+        OFFICERS_ERROR_MESSAGE_RAID_HELPER_DOWN_RAID_OF_WEEK,
+      );
+    }
+    return;
+  }
+
+  try {
     const nextTwoMainRaids = getNextTwoMainRaids(ACTIVE_RAID_HELPERS);
 
     if (!nextTwoMainRaids.length) {
@@ -77,10 +94,23 @@ async function logPoliceForMainRaidsOfTheWeek(client: Client) {
 }
 
 async function logPoliceWatchForRaidInTwoDays(client: Client) {
+  
+  // Update bot memory with active raid helpers
   try {
-    // Update bot memory with active raid helpers
     await hydrateActiveRaidHelpers();
+  } catch (error) {
+    console.error("Error in logPoliceWatchForRaidInTwoDays:", error);
 
+    if (error instanceof Error && error.message === HYDRATING_ACTIVE_RAIDS_ERROR) {
+      await pingOfficersWithBotFailure(
+        client,
+        OFFICERS_ERROR_MESSAGE_RAID_HELPER_DOWN_RAID_IN_TWO_DAYS,
+      );
+    }
+    return;
+  }
+
+  try {
     // Find raid that will happen in 2 days from start time in unix timestamp
     const nextRaid = getNextRaidInTwoDays(ACTIVE_RAID_HELPERS);
 
@@ -146,9 +176,21 @@ async function hydrateActiveRaidHelpers() {
   let latestRhEvents: PostedRaidHelperEvent[] = [];
   try {
     latestRhEvents = await fetchRaidHelperPostedEvents();
-  } catch (e) {
-    throw Error("Error while hydrating active raid helpers from Raid-Helper:");
+   } catch (e) {
+    console.log('Fetching raid helpers failed. Retrying in 1 minute...');
+    // Retry after 1 minute if the first attempt fails
+    await new Promise<void>((resolve, reject) => {
+      setTimeout(async () => {
+        try {
+          latestRhEvents = await fetchRaidHelperPostedEvents();
+          resolve();
+        } catch (e) {
+          reject(new Error(HYDRATING_ACTIVE_RAIDS_ERROR));
+        }
+      }, 60000);
+    });
   }
+
 
   if (!latestRhEvents.length) {
     console.log("No raid helpers found");
