@@ -7,6 +7,7 @@ import {
 import {
   CRON_SCHEDULE_EVERY_DAYS_AT_6PM,
   CRON_SCHEDULE_EVERY_DAYS_AT_MIDNIGHT,
+  CRON_SCHEDULE_EVERY_DAYS_AT_NOON,
   CRON_SCHEDULE_EVERYTUESDAY_AT_6PM_AND_1_MINUTE,
   HYDRATING_ACTIVE_RAIDS_ERROR,
   OFFICERS_ERROR_MESSAGE_RAID_HELPER_DOWN_RAID_IN_TWO_DAYS,
@@ -21,6 +22,8 @@ import {
   removeFirstExpiredRaidHelper,
   tagMissingSignees,
 } from "./helpers/raids";
+import { generateAzerothNews } from "./helpers/ai";
+import { getDiscordChannel } from "./helpers/discord";
 
 const ACTIVE_RAID_HELPERS: PostedRaidHelperEvent[] = [];
 
@@ -43,11 +46,17 @@ export function startBot(client: Client) {
     cleanUpRaidHelpersChannel(client);
   });
 
-  //Sechedule job to notify about main raids of the week
+  // Sechedule job to notify about main raids of the week
   cron.schedule(CRON_SCHEDULE_EVERYTUESDAY_AT_6PM_AND_1_MINUTE, () => {
     console.log("Running log police for main raids of the week job");
     logPoliceForMainRaidsOfTheWeek(client);
-  }); 
+  });
+
+  // Schedule job to generate Azeroth news
+  cron.schedule(CRON_SCHEDULE_EVERY_DAYS_AT_NOON, () => {
+    console.log("Running Azeroth news generator job");
+    postAzerothNews(client);
+  });
 
   console.log("\nScheduled jobs successfully started\n");
   console.log("- Missing signs ups for main raids of the week will be notified at 06:00pm every tuesday");
@@ -220,3 +229,31 @@ async function hydrateActiveRaidHelpers() {
     }
   });
 }
+
+const postAzerothNews = async (client: Client) => {
+  if (!process.env.AZEROTH_NEWS_CHANNEL_ID || !process.env.PERPLEXITY_API_KEY) {
+    return;
+  }
+
+
+  try {
+    const newsChannel = await getDiscordChannel(client, process.env.AZEROTH_NEWS_CHANNEL_ID);
+    const newFromAi = await generateAzerothNews();
+    
+    if (!newsChannel || !newsChannel.isSendable()) {
+      console.error("Azeroth news channel not found or not sendable");
+      return;
+    }
+
+    await newsChannel.send(newFromAi.news);
+
+    if (newFromAi.newsSources.length) {
+      await newsChannel.send(newFromAi.newsSources);
+    }
+
+  } catch (error) {
+    console.error("Error while posting discord news channel:", error);
+    return;
+  }
+}
+
