@@ -5,6 +5,7 @@ import {
   getAllRaidersMembers,
   getDiscordChannel,
   getDiscordRoleByName,
+  getRaidLeaderUser,
 } from "./discord";
 import {
   createRaidHelperEvent,
@@ -159,6 +160,19 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
       } catch (e) {
         if (e instanceof Error) {
           console.error(`Error fetching discord channel for raid helper event: ${title}`, e.message);
+
+          if (e.message === "Error fetching channel Unknown Channel") {
+            console.log(`Deleting raid helper event because channel not found: ${title}`);
+            try {
+              await deleteRaidHelperEvent(id);
+              await pingRaidLeaderWithMessage(client, `Le raid helper ${title} a été supprimé car le channel discord associé n'existe pas ou plus.`);
+            } catch (e) {
+              if (e instanceof Error) {
+                console.error(`Error deleting raid helper event because channel not found: ${title}`, e.message);
+              }
+            }
+            continue;
+          }
         }
         continue;
       }
@@ -168,7 +182,15 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
         continue;
       }
       if (discordChannel.type === ChannelType.GuildText && discordChannel.parentId !== process.env.RAID_CATEGORY_ID) {
-        console.log(`Skipping raid helper event because channel not in raid category : ${discordChannel.name}`);
+        console.log(`Deleting raid helper event because channel not in raid category : ${discordChannel.name}`);
+        try {
+          await deleteRaidHelperEvent(id);
+          await pingRaidLeaderWithMessage(client, `Le raid helper ${title} a été supprimé car il n'était pas dans la catégorie raid du discord.`);
+        } catch (e) {
+          if (e instanceof Error) {
+            console.error(`Error deleting raid helper event because channel not in raid category: ${title}`, e.message);
+          }
+        }
         continue;
       }
 
@@ -322,6 +344,35 @@ export async function pingOfficersWithBotFailure(
   } catch (e) {
     if (e instanceof Error) {
       console.error("Error in pingOfficersWithBotFailure:", e.message);
+    }
+  }
+}
+
+export async function pingOfficersWithMessage(client: Client, message: string) {
+  try {
+    const guildOfficers = await getAllOfficersMembers(client, true);
+    for (const [, officer] of guildOfficers) {
+      await officer.send(
+        message
+      );
+    }
+  } catch (e) {
+    if (e instanceof Error) {
+      console.error("Error in pingOfficersWithMessage:", e.message);
+    }
+  }
+}
+
+export async function pingRaidLeaderWithMessage(client: Client, message: string) {
+  try {
+    const raidLeader = await getRaidLeaderUser(client);
+
+    await raidLeader.send(
+      message
+    );
+  } catch (e) {
+    if (e instanceof Error) {
+      console.error("Error in pingRaidLeaderWithMessage:", e.message);
     }
   }
 }

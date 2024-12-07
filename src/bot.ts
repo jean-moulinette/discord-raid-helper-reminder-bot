@@ -177,18 +177,24 @@ async function hydrateActiveRaidHelpers() {
   try {
     latestRhEvents = await fetchRaidHelperPostedEvents();
    } catch (e) {
-    console.log('Fetching raid helpers failed. Retrying in 1 minute...');
+    console.error('Fetching raid helpers failed. Retrying in 1 minute...');
+
     // Retry after 1 minute if the first attempt fails
-    await new Promise<void>((resolve, reject) => {
-      setTimeout(async () => {
-        try {
-          latestRhEvents = await fetchRaidHelperPostedEvents();
-          resolve();
-        } catch (e) {
-          reject(new Error(HYDRATING_ACTIVE_RAIDS_ERROR));
-        }
-      }, 60000);
-    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        setTimeout(async () => {
+          try {
+            latestRhEvents = await fetchRaidHelperPostedEvents();
+            resolve();
+          } catch (e) {
+            reject();
+          }
+        }, 60000);
+      });
+    } catch (e) {
+      console.error('Second attempt to fetch raid helpers failed. Exiting...');
+      throw new Error(HYDRATING_ACTIVE_RAIDS_ERROR);
+    }
   }
 
 

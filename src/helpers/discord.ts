@@ -107,6 +107,30 @@ export async function getAllAbsentPlayers(client: Client) {
   }
 }
 
+export async function getRaidLeaderUser(client: Client) {
+  try {
+    const guild = await getGuild(client);
+    await guild.members.fetch();
+
+    const raidLeader = guild.members.cache.find(
+      ({ user }) => user.id === process.env.RAID_LEADER_ID
+    );
+
+    if (!raidLeader) {
+      throw Error(
+        "Raid leader not found in server, make sure the ID you configured for the bot, is matching with the raid leader ID you got in your discord server"
+      );
+    }
+
+    return raidLeader.user;
+  } catch (e) {
+    if (e instanceof Error) {
+      throw Error(`Error fetching raid leader ${e.message}`);
+    }
+    throw Error("Error fetching raid leader");
+  }
+}
+
 export async function getAllOfficersMembers(client: Client, shouldFilterAbsentPlayers = false) {
   try {
     const guild = await getGuild(client);

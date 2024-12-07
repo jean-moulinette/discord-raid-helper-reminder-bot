@@ -45,7 +45,36 @@ export async function fetchRaidHelperEventSignUps(rhEventId: string) {
     return signUps;
   } catch (error) {
     console.error("Error fetching event data from Raid-Helper:", error);
-    return [];
+    console.log('Retrying in 1 minute...');
+
+    // Retry after 1 minute if the first attempt fails
+    try {
+      const signups = await new Promise<RhMember[]>((resolve, reject) => {
+        setTimeout(async () => {
+          try {
+            const response = await axios.get<RhEventResponse>(
+              `https://raid-helper.dev/api/v2/events/${rhEventId}`,
+              {
+                headers: {
+                  Authorization: `${process.env.RAID_HELPER_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            );
+
+            const eventData = response.data;
+            const signUps = eventData.signUps;
+            resolve(signUps);
+          } catch (e) {
+            reject();
+          }
+        }, 60000);
+      });
+      return signups;
+    } catch (e) {
+      console.error('Second attempt to fetch event data from Raid-Helper failed. Exiting...');
+      throw new Error('Error fetching event data from Raid-Helper');
+    }
   }
 }
 
