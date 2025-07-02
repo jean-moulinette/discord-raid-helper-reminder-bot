@@ -16,6 +16,7 @@ import {
 import {
   getNextRaidInTwoDays,
   getNextTwoMainRaids,
+  isRaidHelperExpired,
   pingOfficersWithBotFailure,
   recreateNextWeekRaidHelper,
   recreateRaidHelperChannelThread,
@@ -53,10 +54,12 @@ export function startBot(client: Client) {
   });
 
   // Schedule job to generate Azeroth news
-  cron.schedule(CRON_SCHEDULE_EVERY_DAYS_AT_NOON, () => {
-    console.log("Running Azeroth news generator job");
-    postAzerothNews(client);
-  });
+  if (process.env.AZEROTH_NEWS_CHANNEL_ID && process.env.PERPLEXITY_API_KEY) {
+    cron.schedule(CRON_SCHEDULE_EVERY_DAYS_AT_NOON, () => {
+      console.log("Running Azeroth news generator job");
+      postAzerothNews(client);
+    });
+  }
 
   console.log("\nScheduled jobs successfully started\n");
   console.log("- Missing signs ups for main raids of the week will be notified at 06:00pm every tuesday");
@@ -65,7 +68,7 @@ export function startBot(client: Client) {
 }
 
 async function logPoliceForMainRaidsOfTheWeek(client: Client) {
-  
+
   try {
     await hydrateActiveRaidHelpers();
   } catch (error) {
@@ -103,7 +106,6 @@ async function logPoliceForMainRaidsOfTheWeek(client: Client) {
 }
 
 async function logPoliceWatchForRaidInTwoDays(client: Client) {
-  
   // Update bot memory with active raid helpers
   try {
     await hydrateActiveRaidHelpers();
@@ -123,13 +125,19 @@ async function logPoliceWatchForRaidInTwoDays(client: Client) {
     // Find raid that will happen in 2 days from start time in unix timestamp
     const nextRaid = getNextRaidInTwoDays(ACTIVE_RAID_HELPERS);
 
-    if (!nextRaid || nextRaid?.title.toLowerCase() !== process.env.OPTIONAL_RAID_TITLE?.toLowerCase()) {
-      console.log("No optional raid found in 2 days. Exiting...");
+    if (!nextRaid) {
+      console.log("No raid found in 2 days. Exiting...");
       return;
     }
 
-    // Tag missing signees in raid helper channel and send report to officers
-    await tagMissingSignees(client, nextRaid);
+    const { startTime } = nextRaid;
+    const raidDate = new Date(startTime * 1000);
+
+    // If next raid is on monday, we need to check tag missing signees for the next raid
+    if (raidDate.getDay() === 1) {
+      // Tag missing signees in raid helper channel and send report to officers
+      await tagMissingSignees(client, nextRaid);
+    }
   } catch (e) {
     if (e instanceof Error) {
       console.error("Error in logPoliceWatch:", e.message);
@@ -185,7 +193,7 @@ async function hydrateActiveRaidHelpers() {
   let latestRhEvents: PostedRaidHelperEvent[] = [];
   try {
     latestRhEvents = await fetchRaidHelperPostedEvents();
-   } catch (e) {
+  } catch (e) {
     console.error('Fetching raid helpers failed. Retrying in 1 minute...');
 
     // Retry after 1 minute if the first attempt fails
@@ -212,19 +220,10 @@ async function hydrateActiveRaidHelpers() {
     return;
   }
 
-  // Remove inactive raid helpers from memory
-  ACTIVE_RAID_HELPERS.forEach((rhEvent) => {
-    const isEventActive = latestRhEvents.find(
-      (event) => event.id === rhEvent.id
-    );
-    if (!isEventActive) {
-      ACTIVE_RAID_HELPERS.splice(ACTIVE_RAID_HELPERS.indexOf(rhEvent), 1);
-    }
-  });
-
-  // Add new active raid helpers to memory
+  // Refresh raid helpers in memory
+  ACTIVE_RAID_HELPERS.length = 0;
   latestRhEvents.forEach((rhEvent) => {
-    if (!ACTIVE_RAID_HELPERS.find((event) => event.id === rhEvent.id)) {
+    if (!isRaidHelperExpired(rhEvent)) {
       ACTIVE_RAID_HELPERS.push(rhEvent);
     }
   });
@@ -239,7 +238,7 @@ const postAzerothNews = async (client: Client) => {
   try {
     const newsChannel = await getDiscordChannel(client, process.env.AZEROTH_NEWS_CHANNEL_ID);
     const newFromAi = await generateAzerothNews();
-    
+
     if (!newsChannel || !newsChannel.isSendable()) {
       console.error("Azeroth news channel not found or not sendable");
       return;

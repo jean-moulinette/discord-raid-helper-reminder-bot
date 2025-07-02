@@ -35,18 +35,19 @@ export function getNextRaidInTwoDays(listOfRaids: PostedRaidHelperEvent[]) {
   });
 }
 
-
+/**
+ * Get the next two main raids from the list of raids
+ * @param listOfRaids - The list of raids to get the next two main raids from
+ * @returns The next two main raids which are on monday or thursday
+ */
 export function getNextTwoMainRaids(listOfRaids: PostedRaidHelperEvent[]) {
-  const today = new Date();
   const twoNextRaids = listOfRaids
     .filter((rhEvent) => {
-      const isMainRaid = rhEvent.title === 'unnamed';
-      if (!isMainRaid) {
-        return false;
-      }
+      const raidDayOfTheWeek = new Date(rhEvent.startTime * 1000).getDay();
+      const isRaidExpired = isRaidHelperExpired(rhEvent);
+      const isMainRaid = raidDayOfTheWeek === 1 || raidDayOfTheWeek === 4
 
-      const raidDate = new Date(rhEvent.startTime * 1000);
-      return raidDate >= today;
+      return isMainRaid && !isRaidExpired;
     })
     .sort((a, b) => a.startTime - b.startTime)
     .slice(0, 2);
@@ -72,7 +73,7 @@ export async function tagMissingSignees(
     if (!rhEventDiscordChannel || !rhEventDiscordChannel.isSendable()) {
       throw Error("Could not find raid helper channel or send message to it");
     }
-    
+
     const rhEventDiscordMessage = await rhEventDiscordChannel.messages.fetch(nextRaid.id);
     const rhSignUps = await fetchRaidHelperEventSignUps(nextRaid.id);
     const rhDiscordThread = rhEventDiscordMessage.thread;
@@ -152,11 +153,11 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
 
     // Itterate over all raid helpers and delete the one that just ended
     for (const rhEvent of latestRhEvents) {
-      const { endTime, startTime, id, title, channelId } = rhEvent;
+      const { startTime, id, title, channelId } = rhEvent;
       let discordChannel = null;
 
       try {
-        discordChannel = await getDiscordChannel(client, channelId);        
+        discordChannel = await getDiscordChannel(client, channelId);
       } catch (e) {
         if (e instanceof Error) {
           console.error(`Error fetching discord channel for raid helper event: ${title}`, e.message);
@@ -194,14 +195,10 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
         continue;
       }
 
-
-      const rhEventEndTime = new Date(endTime * 1000);
-      const currentTime = new Date();
-
       // if rhEvent is already over, delete it
-      if (rhEventEndTime < currentTime) {
+      if (isRaidHelperExpired(rhEvent)) {
         await deleteRaidHelperEvent(id);
-        raidHelperTitleToRecreate = title.toLowerCase() === process.env.OPTIONAL_RAID_TITLE?.toLowerCase() ? title : undefined;
+        raidHelperTitleToRecreate = title;
         removedEventStartTime = startTime;
         channelIdToRecreateRh = channelId;
         const humanDate = new Date(startTime * 1000).toLocaleDateString(
@@ -225,6 +222,12 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
     }
     throw Error("Error removing first expired raid helper");
   }
+}
+
+export function isRaidHelperExpired(rhEvent: PostedRaidHelperEvent) {
+  const rhEventEndTime = new Date(rhEvent.endTime * 1000);
+  const currentTime = new Date();
+  return rhEventEndTime < currentTime;
 }
 
 export async function recreateNextWeekRaidHelper(
