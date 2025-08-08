@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Partials } from 'discord.js';
+import { Client, GatewayIntentBits, GuildMember, Partials } from 'discord.js';
 
 export function getDiscordClient() {
   return new Client({
@@ -223,4 +223,9 @@ export async function getDiscordRoleByName(client: Client, roleName: string) {
     }
     throw Error('Error fetching role');
   }
+}
+
+export function memberIsOfficer(member: GuildMember): boolean {
+  const officerRoleName = process.env.OFFICER_ROLE_NAME as string;
+  return member.roles.cache.some((role) => role.name === officerRoleName);
 }

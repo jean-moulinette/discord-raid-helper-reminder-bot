@@ -1,4 +1,5 @@
 import cron from 'node-cron';
+import { attachInteractionHandlers, registerApplicationCommands } from './commands';
 import type { Client } from 'discord.js';
 import {
   CRON_SCHEDULE_EVERY_DAYS_AT_6PM,
@@ -18,6 +19,11 @@ export function startBot(client: Client) {
   }
 
   console.log(`Bot successfully logged in as "${client.user.displayName}"!`);
+
+  // Register slash commands and handlers
+  registerApplicationCommands(client).then(() => attachInteractionHandlers(client)).catch((e) => {
+    console.error('Failed to register application commands:', e);
+  });
 
   // Schedule job to notify about missing signees in raid helper for next raid occurins in 2 days
   cron.schedule(CRON_SCHEDULE_EVERY_DAYS_AT_6PM, () => {
