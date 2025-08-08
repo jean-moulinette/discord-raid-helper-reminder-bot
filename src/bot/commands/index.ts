@@ -1,7 +1,7 @@
 import { type Client, ChannelType } from 'discord.js';
 import { COMMANDS } from './consts';
 import { memberIsOfficer } from '../../helpers/discord';
-import { commandController } from './@commands/controller';
+import { commandController } from './controller';
 
 export async function registerApplicationCommands(client: Client) {
   if (!client.user) return;
@@ -9,6 +9,10 @@ export async function registerApplicationCommands(client: Client) {
   const guild = await client.guilds.fetch(guildId);
   await guild.commands.set(COMMANDS.map((c) => c.toJSON()));
   console.log('Slash commands registered for guild:', guild.name);
+  console.log(
+    'Slash commands:',
+    COMMANDS.map((c) => c.name),
+  );
 }
 
 export function attachInteractionHandlers(client: Client) {
@@ -60,7 +64,7 @@ export function attachInteractionHandlers(client: Client) {
       await interaction.deferReply({ ephemeral: true });
 
       // Register the command controller to handle the commands
-      commandController(interaction);
+      commandController(interaction, client);
     } catch (error) {
       try {
         if (interaction.isRepliable()) {
