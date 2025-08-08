@@ -18,7 +18,6 @@ export async function testServicesConnection(client: Client) {
     await getGuild(client);
   } catch (e) {
     console.error('Error when testing discord API connection:');
-    console.error;
     console.error(e);
     throw e;
   }

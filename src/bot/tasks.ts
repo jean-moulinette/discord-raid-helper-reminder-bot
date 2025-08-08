@@ -1,15 +1,5 @@
-import cron from 'node-cron';
-import { type Client } from 'discord.js';
-import { fetchRaidHelperPostedEvents, type PostedRaidHelperEvent } from './helpers/raid-helper';
-import {
-  CRON_SCHEDULE_EVERY_DAYS_AT_6PM,
-  CRON_SCHEDULE_EVERY_DAYS_AT_MIDNIGHT,
-  CRON_SCHEDULE_EVERY_DAYS_AT_NOON,
-  CRON_SCHEDULE_EVERYTUESDAY_AT_6PM_AND_1_MINUTE,
-  HYDRATING_ACTIVE_RAIDS_ERROR,
-  OFFICERS_ERROR_MESSAGE_RAID_HELPER_DOWN_RAID_IN_TWO_DAYS,
-  OFFICERS_ERROR_MESSAGE_RAID_HELPER_DOWN_RAID_OF_WEEK,
-} from './consts';
+import type { Client } from 'discord.js';
+import { fetchRaidHelperPostedEvents } from '../helpers/raid-helper';
 import {
   getNextRaidInTwoDays,
   getNextTwoMainRaids,
@@ -19,56 +9,19 @@ import {
   recreateRaidHelperChannelThread,
   removeFirstExpiredRaidHelper,
   tagMissingSignees,
-} from './helpers/raids';
-import { generateAzerothNews } from './helpers/ai';
-import { getDiscordChannel } from './helpers/discord';
+} from '../helpers/raids';
+import {
+  OFFICERS_ERROR_MESSAGE_RAID_HELPER_DOWN_RAID_OF_WEEK,
+  HYDRATING_ACTIVE_RAIDS_ERROR,
+  OFFICERS_ERROR_MESSAGE_RAID_HELPER_DOWN_RAID_IN_TWO_DAYS,
+} from './consts';
+import { getDiscordChannel } from '../helpers/discord';
+import { generateAzerothNews } from '../helpers/ai';
+import type { PostedRaidHelperEvent } from '../helpers/raid-helper.types';
 
 const ACTIVE_RAID_HELPERS: PostedRaidHelperEvent[] = [];
 
-export function startBot(client: Client) {
-  if (!client.user) {
-    throw Error('No client user');
-  }
-
-  console.log(`Bot successfully logged in as "${client.user.displayName}"!`);
-
-  // Schedule job to notify about missing signees in raid helper for next raid occurins in 2 days
-  cron.schedule(CRON_SCHEDULE_EVERY_DAYS_AT_6PM, () => {
-    console.log('Running log police watch job');
-    logPoliceWatchForRaidInTwoDays(client);
-  });
-
-  // Schedule job to clean up raid helpers channel
-  cron.schedule(CRON_SCHEDULE_EVERY_DAYS_AT_MIDNIGHT, () => {
-    console.log('Running raid-helper cleanup job');
-    cleanUpRaidHelpersChannel(client);
-  });
-
-  // Sechedule job to notify about main raids of the week
-  cron.schedule(CRON_SCHEDULE_EVERYTUESDAY_AT_6PM_AND_1_MINUTE, () => {
-    console.log('Running log police for main raids of the week job');
-    logPoliceForMainRaidsOfTheWeek(client);
-  });
-
-  // Schedule job to generate Azeroth news
-  if (process.env.AZEROTH_NEWS_CHANNEL_ID && process.env.PERPLEXITY_API_KEY) {
-    cron.schedule(CRON_SCHEDULE_EVERY_DAYS_AT_NOON, () => {
-      console.log('Running Azeroth news generator job');
-      postAzerothNews(client);
-    });
-  }
-
-  console.log('\nScheduled jobs successfully started\n');
-  console.log(
-    '- Missing signs ups for main raids of the week will be notified at 06:00pm every tuesday',
-  );
-  console.log(
-    '- Missing signs ups for optional raids will be notified at 06:00pm every day starting from 2 days before the raid',
-  );
-  console.log('- Raid helpers cleanup will be done at 00:05am every day');
-}
-
-async function logPoliceForMainRaidsOfTheWeek(client: Client) {
+export async function logPoliceForMainRaidsOfTheWeek(client: Client) {
   try {
     await hydrateActiveRaidHelpers();
   } catch (error) {
@@ -105,7 +58,7 @@ async function logPoliceForMainRaidsOfTheWeek(client: Client) {
   }
 }
 
-async function logPoliceWatchForRaidInTwoDays(client: Client) {
+export async function logPoliceWatchForRaidInTwoDays(client: Client) {
   // Update bot memory with active raid helpers
   try {
     await hydrateActiveRaidHelpers();
@@ -149,7 +102,7 @@ async function logPoliceWatchForRaidInTwoDays(client: Client) {
   }
 }
 
-async function cleanUpRaidHelpersChannel(client: Client) {
+export async function cleanUpRaidHelpersChannel(client: Client) {
   try {
     const result = await removeFirstExpiredRaidHelper(client);
 
@@ -176,7 +129,7 @@ async function cleanUpRaidHelpersChannel(client: Client) {
 
     await pingOfficersWithBotFailure(
       client,
-      'Suppréssion du dernier raid helper expiré et création de celui de la semaine prochaine.',
+      'Suppression du dernier raid helper expiré et création de celui de la semaine prochaine.',
     );
   }
 }
@@ -186,24 +139,8 @@ async function hydrateActiveRaidHelpers() {
   try {
     latestRhEvents = await fetchRaidHelperPostedEvents();
   } catch (e) {
-    console.error('Fetching raid helpers failed. Retrying in 1 minute...');
-
-    // Retry after 1 minute if the first attempt fails
-    try {
-      await new Promise<void>((resolve, reject) => {
-        setTimeout(async () => {
-          try {
-            latestRhEvents = await fetchRaidHelperPostedEvents();
-            resolve();
-          } catch (e) {
-            reject();
-          }
-        }, 60000);
-      });
-    } catch (e) {
-      console.error('Second attempt to fetch raid helpers failed. Exiting...');
-      throw new Error(HYDRATING_ACTIVE_RAIDS_ERROR);
-    }
+    console.error('Fetching all posted events from Raid-Helper failed. Exiting...');
+    throw new Error(HYDRATING_ACTIVE_RAIDS_ERROR);
   }
 
   if (!latestRhEvents.length) {
@@ -220,7 +157,7 @@ async function hydrateActiveRaidHelpers() {
   });
 }
 
-const postAzerothNews = async (client: Client) => {
+export async function postAzerothNews(client: Client) {
   if (!process.env.AZEROTH_NEWS_CHANNEL_ID || !process.env.PERPLEXITY_API_KEY) {
     return;
   }
@@ -243,4 +180,4 @@ const postAzerothNews = async (client: Client) => {
     console.error('Error while posting discord news channel:', error);
     return;
   }
-};
+}

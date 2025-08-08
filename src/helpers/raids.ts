@@ -12,8 +12,8 @@ import {
   deleteRaidHelperEvent,
   fetchRaidHelperEventSignUps,
   fetchRaidHelperPostedEvents,
-  type PostedRaidHelperEvent,
 } from './raid-helper';
+import type { PostedRaidHelperEvent } from './raid-helper.types';
 
 export function getNextRaidInTwoDays(listOfRaids: PostedRaidHelperEvent[]) {
   return listOfRaids.find((rhEvent) => {

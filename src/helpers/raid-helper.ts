@@ -1,80 +1,29 @@
 import axios from 'axios';
-
-export type PostedRaidHelperEvent = {
-  color: string;
-  description: string;
-  title: string;
-  templateId: string;
-  signUpCount: string;
-  leaderId: string;
-  lastUpdated: number;
-  leaderName: string;
-  closeTime: number;
-  startTime: number;
-  endTime: number;
-  id: string;
-  channelId: string;
-};
-
-type RhMember = {
-  id: number;
-  userId: string;
-  name: string;
-  status: string;
-};
-
-type RhEventResponse = {
-  id: string;
-  signUps: RhMember[];
-};
+import { retryOnceAfterDelay } from './async';
+import type { PostedRaidHelperEvent, RhEventResponse } from './raid-helper.types';
 
 export async function fetchRaidHelperEventSignUps(rhEventId: string) {
   try {
-    const response = await axios.get<RhEventResponse>(
-      `https://raid-helper.dev/api/v2/events/${rhEventId}`,
+    const response = await retryOnceAfterDelay(
+      async () =>
+        axios.get<RhEventResponse>(`https://raid-helper.dev/api/v2/events/${rhEventId}`, {
+          headers: {
+            Authorization: `${process.env.RAID_HELPER_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }),
       {
-        headers: {
-          Authorization: `${process.env.RAID_HELPER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
+        onRetry: (e) =>
+          console.error(`Fetching event data from Raid-Helper ID: [${rhEventId}] failed. ${e}`),
       },
     );
 
-    const eventData = response.data;
-    const signUps = eventData.signUps;
-    return signUps;
+    return response.data.signUps;
   } catch (error) {
-    console.error('Error fetching event data from Raid-Helper:', error);
-    console.log('Retrying in 1 minute...');
-
-    // Retry after 1 minute if the first attempt fails
-    try {
-      const signups = await new Promise<RhMember[]>((resolve, reject) => {
-        setTimeout(async () => {
-          try {
-            const response = await axios.get<RhEventResponse>(
-              `https://raid-helper.dev/api/v2/events/${rhEventId}`,
-              {
-                headers: {
-                  Authorization: `${process.env.RAID_HELPER_API_KEY}`,
-                  'Content-Type': 'application/json',
-                },
-              },
-            );
-
-            const eventData = response.data;
-            const signUps = eventData.signUps;
-            resolve(signUps);
-          } catch (e) {
-            reject();
-          }
-        }, 60000);
-      });
-      return signups;
-    } catch (e) {
-      console.error('Second attempt to fetch event data from Raid-Helper failed. Exiting...');
-      throw new Error('Error fetching event data from Raid-Helper');
+    if (error instanceof Error) {
+      throw Error(`Error fetching event data from Raid-Helper ${error.message}`);
     }
+    throw Error('Error fetching event data from Raid-Helper');
   }
 }
 
@@ -88,33 +37,47 @@ type RhEventsResponse = {
 
 export async function fetchRaidHelperPostedEvents() {
   try {
-    const response = await axios.get<RhEventsResponse>(
-      `https://raid-helper.dev/api/v3/servers/${process.env.GUILD_ID}/events`,
+    const response = await retryOnceAfterDelay(
+      async () =>
+        axios.get<RhEventsResponse>(
+          `https://raid-helper.dev/api/v3/servers/${process.env.GUILD_ID}/events`,
+          {
+            headers: {
+              Authorization: `${process.env.RAID_HELPER_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        ),
       {
-        headers: {
-          Authorization: `${process.env.RAID_HELPER_API_KEY}`,
-          'Content-Type': 'application/json',
+        onRetry: (e) => {
+          console.error(`Fetching all posted events from Raid-Helper failed. ${e}`);
         },
       },
     );
-    const events = response.data.postedEvents;
-    return events;
+    return response.data.postedEvents;
   } catch (e) {
     if (e instanceof Error) {
-      throw Error(`Error fetching events from Raid-Helper ${e.message}`);
+      throw Error(`Error fetching all posted events from Raid-Helper ${e.message}`);
     }
-    throw Error('Error fetching events from Raid-Helper');
+    throw Error('Error fetching all posted events from Raid-Helper');
   }
 }
 
 export async function deleteRaidHelperEvent(eventId: string) {
   try {
-    const response = await axios.delete(`https://raid-helper.dev/api/v2/events/${eventId}`, {
-      headers: {
-        Authorization: `${process.env.RAID_HELPER_API_KEY}`,
-        'Content-Type': 'application/json',
+    const response = await retryOnceAfterDelay(
+      async () =>
+        axios.delete(`https://raid-helper.dev/api/v2/events/${eventId}`, {
+          headers: {
+            Authorization: `${process.env.RAID_HELPER_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+      {
+        onRetry: (e) =>
+          console.error(`Deleting event from Raid-Helper ID: [${eventId}] failed. ${e}`),
       },
-    });
+    );
 
     return response.status;
   } catch (e) {
@@ -127,24 +90,30 @@ export async function deleteRaidHelperEvent(eventId: string) {
 
 export async function createRaidHelperEvent(channelId: string, date: string, title?: string) {
   try {
-    const response = await axios.post(
-      `https://raid-helper.dev/api/v2/servers/${process.env.GUILD_ID}/channels/${channelId}/event`,
+    const response = await retryOnceAfterDelay(
+      async () =>
+        axios.post(
+          `https://raid-helper.dev/api/v2/servers/${process.env.GUILD_ID}/channels/${channelId}/event`,
+          {
+            leaderId: process.env.RAID_LEAD_USER_ID,
+            templateId: process.env.RAID_HELPER_TEMPLATE_ID,
+            title,
+            advancedSettings: {
+              vacuum: true,
+              tentative_emote: 'remove',
+              bench_emote: 'remove',
+            },
+            date,
+          },
+          {
+            headers: {
+              Authorization: `${process.env.RAID_HELPER_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        ),
       {
-        leaderId: process.env.RAID_LEAD_USER_ID,
-        templateId: process.env.RAID_HELPER_TEMPLATE_ID,
-        title,
-        advancedSettings: {
-          vacuum: true,
-          tentative_emote: 'remove',
-          bench_emote: 'remove',
-        },
-        date,
-      },
-      {
-        headers: {
-          Authorization: `${process.env.RAID_HELPER_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
+        onRetry: (e) => console.error(`Creating event in Raid-Helper failed. ${e}`),
       },
     );
 
