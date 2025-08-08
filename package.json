@@ -2,6 +2,10 @@
   "name": "lfdb-bot",
   "version": "1.0.0",
   "main": "index.js",
+  "volta": {
+    "node": "22.18.0",
+    "npm": "10.9.0"
+  },
   "scripts": {
     "start": "tsc && node dist/index.js",
     "dev": "tsc --watch",
