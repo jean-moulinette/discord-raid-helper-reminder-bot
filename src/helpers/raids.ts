@@ -1,4 +1,4 @@
-import { channelMention, ChannelType, Client, roleMention, userMention } from "discord.js";
+import { channelMention, ChannelType, Client, roleMention, userMention } from 'discord.js';
 import {
   getAllAbsentPlayers,
   getAllOfficersMembers,
@@ -6,14 +6,14 @@ import {
   getDiscordChannel,
   getDiscordRoleByName,
   getRaidLeaderUser,
-} from "./discord";
+} from './discord';
 import {
   createRaidHelperEvent,
   deleteRaidHelperEvent,
   fetchRaidHelperEventSignUps,
   fetchRaidHelperPostedEvents,
   type PostedRaidHelperEvent,
-} from "./raid-helper";
+} from './raid-helper';
 
 export function getNextRaidInTwoDays(listOfRaids: PostedRaidHelperEvent[]) {
   return listOfRaids.find((rhEvent) => {
@@ -45,7 +45,7 @@ export function getNextTwoMainRaids(listOfRaids: PostedRaidHelperEvent[]) {
     .filter((rhEvent) => {
       const raidDayOfTheWeek = new Date(rhEvent.startTime * 1000).getDay();
       const isRaidExpired = isRaidHelperExpired(rhEvent);
-      const isMainRaid = raidDayOfTheWeek === 1 || raidDayOfTheWeek === 4
+      const isMainRaid = raidDayOfTheWeek === 1 || raidDayOfTheWeek === 4;
 
       return isMainRaid && !isRaidExpired;
     })
@@ -55,23 +55,16 @@ export function getNextTwoMainRaids(listOfRaids: PostedRaidHelperEvent[]) {
   return twoNextRaids;
 }
 
-
-export async function tagMissingSignees(
-  client: Client,
-  nextRaid: PostedRaidHelperEvent
-) {
+export async function tagMissingSignees(client: Client, nextRaid: PostedRaidHelperEvent) {
   try {
     const guildRaiders = await getAllRaidersMembers(client, true);
     const guildOfficers = await getAllOfficersMembers(client, true);
     const absentPlayers = await getAllAbsentPlayers(client);
-    const rhEventDiscordChannel = await getDiscordChannel(
-      client,
-      nextRaid.channelId
-    );
+    const rhEventDiscordChannel = await getDiscordChannel(client, nextRaid.channelId);
 
     // Check if raid helper channel is sendable
     if (!rhEventDiscordChannel || !rhEventDiscordChannel.isSendable()) {
-      throw Error("Could not find raid helper channel or send message to it");
+      throw Error('Could not find raid helper channel or send message to it');
     }
 
     const rhEventDiscordMessage = await rhEventDiscordChannel.messages.fetch(nextRaid.id);
@@ -79,31 +72,35 @@ export async function tagMissingSignees(
     const rhDiscordThread = rhEventDiscordMessage.thread;
 
     if (!rhDiscordThread || !rhDiscordThread.isSendable()) {
-      throw Error("Could not find raid helper thread or send message to it");
+      throw Error('Could not find raid helper thread or send message to it');
     }
 
     const nonSignees = guildRaiders.filter(
-      (raider) => !rhSignUps.find((signee) => signee.userId === raider.id)
+      (raider) => !rhSignUps.find((signee) => signee.userId === raider.id),
     );
-    const nextRaidfrenchHumanReadableDate = new Date(
-      nextRaid.startTime * 1000
-    ).toLocaleDateString("fr-FR", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+    const nextRaidfrenchHumanReadableDate = new Date(nextRaid.startTime * 1000).toLocaleDateString(
+      'fr-FR',
+      {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      },
+    );
 
-    const absentPlayersMentions = absentPlayers.size && absentPlayers.map((absentPlayer) => `- ${userMention(absentPlayer.id)}`).join("\n");
-    const absentPlayersReport = absentPlayersMentions && `Les joueurs suivants ont signalé leurs absence:\n\n${absentPlayersMentions}\n\nPensez à retirer leur rôle "Absent" si ils ne le sont plus.`
-
+    const absentPlayersMentions =
+      absentPlayers.size &&
+      absentPlayers.map((absentPlayer) => `- ${userMention(absentPlayer.id)}`).join('\n');
+    const absentPlayersReport =
+      absentPlayersMentions &&
+      `Les joueurs suivants ont signalé leurs absence:\n\n${absentPlayersMentions}\n\nPensez à retirer leur rôle "Absent" si ils ne le sont plus.`;
 
     if (!nonSignees.size) {
       for (const [, officer] of guildOfficers) {
         await officer.send(
           `Bonjour,\n\nla police des logs vient de détecter que tous les raiders sont inscrits sur le raid:\n${channelMention(
-            nextRaid.channelId
-          )}\n**Prévu pour le ${nextRaidfrenchHumanReadableDate}**.\n\nMerci de bien vouloir vérifier que la composition est postée :)`
+            nextRaid.channelId,
+          )}\n**Prévu pour le ${nextRaidfrenchHumanReadableDate}**.\n\nMerci de bien vouloir vérifier que la composition est postée :)`,
         );
         if (absentPlayersReport) {
           await officer.send(absentPlayersReport);
@@ -112,15 +109,13 @@ export async function tagMissingSignees(
       return;
     }
 
-    const nonSigneesMentions = nonSignees
-      .map((raider) => `- ${userMention(raider.id)}`)
-      .join("\n");
+    const nonSigneesMentions = nonSignees.map((raider) => `- ${userMention(raider.id)}`).join('\n');
 
     for (const [, officer] of guildOfficers) {
       await officer.send(
         `Bonjour,\n\nla police des logs vient de détecter que les raiders suivants ne sont pas inscrits sur le raid:\n${channelMention(
-          nextRaid.channelId
-        )}\n**Prévu pour le ${nextRaidfrenchHumanReadableDate}**:\n\n${nonSigneesMentions}\n\nMerci de bien vouloir vérifier que la composition est postée :)`
+          nextRaid.channelId,
+        )}\n**Prévu pour le ${nextRaidfrenchHumanReadableDate}**:\n\n${nonSigneesMentions}\n\nMerci de bien vouloir vérifier que la composition est postée :)`,
       );
 
       if (absentPlayersReport) {
@@ -129,13 +124,13 @@ export async function tagMissingSignees(
     }
 
     await rhDiscordThread.send(
-      `Bonjour les raideurs !\nLa police des logs vient de détecter que les raiders suivants ne sont pas inscrits sur le raid:\n${nonSigneesMentions}\nMerci de bien vouloir nous donner votre dispo sur le raid-helper pour faciliter l'organisation du raid :)`
+      `Bonjour les raideurs !\nLa police des logs vient de détecter que les raiders suivants ne sont pas inscrits sur le raid:\n${nonSigneesMentions}\nMerci de bien vouloir nous donner votre dispo sur le raid-helper pour faciliter l'organisation du raid :)`,
     );
   } catch (e) {
     if (e instanceof Error) {
       throw Error(`Error while tagging missing signees: ${e.message}`);
     }
-    throw Error("Error while tagging missing signees");
+    throw Error('Error while tagging missing signees');
   }
 }
 
@@ -147,7 +142,7 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
     let raidHelperTitleToRecreate = undefined;
 
     if (!latestRhEvents.length) {
-      console.log("No raid helpers found");
+      console.log('No raid helpers found');
       return;
     }
 
@@ -160,16 +155,25 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
         discordChannel = await getDiscordChannel(client, channelId);
       } catch (e) {
         if (e instanceof Error) {
-          console.error(`Error fetching discord channel for raid helper event: ${title}`, e.message);
+          console.error(
+            `Error fetching discord channel for raid helper event: ${title}`,
+            e.message,
+          );
 
-          if (e.message === "Error fetching channel Unknown Channel") {
+          if (e.message === 'Error fetching channel Unknown Channel') {
             console.log(`Deleting raid helper event because channel not found: ${title}`);
             try {
               await deleteRaidHelperEvent(id);
-              await pingRaidLeaderWithMessage(client, `Le raid helper ${title} a été supprimé car le channel discord associé n'existe pas ou plus.`);
+              await pingRaidLeaderWithMessage(
+                client,
+                `Le raid helper ${title} a été supprimé car le channel discord associé n'existe pas ou plus.`,
+              );
             } catch (e) {
               if (e instanceof Error) {
-                console.error(`Error deleting raid helper event because channel not found: ${title}`, e.message);
+                console.error(
+                  `Error deleting raid helper event because channel not found: ${title}`,
+                  e.message,
+                );
               }
             }
             continue;
@@ -182,14 +186,25 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
         console.error(`Raid helper discord event channel not found for event: ${title}`);
         continue;
       }
-      if (discordChannel.type === ChannelType.GuildText && discordChannel.parentId !== process.env.RAID_CATEGORY_ID) {
-        console.log(`Deleting raid helper event because channel not in raid category : ${discordChannel.name}`);
+      if (
+        discordChannel.type === ChannelType.GuildText &&
+        discordChannel.parentId !== process.env.RAID_CATEGORY_ID
+      ) {
+        console.log(
+          `Deleting raid helper event because channel not in raid category : ${discordChannel.name}`,
+        );
         try {
           await deleteRaidHelperEvent(id);
-          await pingRaidLeaderWithMessage(client, `Le raid helper ${title} a été supprimé car il n'était pas dans la catégorie raid du discord.`);
+          await pingRaidLeaderWithMessage(
+            client,
+            `Le raid helper ${title} a été supprimé car il n'était pas dans la catégorie raid du discord.`,
+          );
         } catch (e) {
           if (e instanceof Error) {
-            console.error(`Error deleting raid helper event because channel not in raid category: ${title}`, e.message);
+            console.error(
+              `Error deleting raid helper event because channel not in raid category: ${title}`,
+              e.message,
+            );
           }
         }
         continue;
@@ -201,15 +216,12 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
         raidHelperTitleToRecreate = title;
         removedEventStartTime = startTime;
         channelIdToRecreateRh = channelId;
-        const humanDate = new Date(startTime * 1000).toLocaleDateString(
-          "fr-FR",
-          {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          }
-        );
+        const humanDate = new Date(startTime * 1000).toLocaleDateString('fr-FR', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
         console.log(`Deleted raid helper event: ${title} - ${humanDate}`);
         break;
       }
@@ -218,9 +230,9 @@ export async function removeFirstExpiredRaidHelper(client: Client) {
     return { channelIdToRecreateRh, removedEventStartTime, raidHelperTitleToRecreate };
   } catch (e) {
     if (e instanceof Error) {
-      console.error("Error removing first expired raid helper:", e.message);
+      console.error('Error removing first expired raid helper:', e.message);
     }
-    throw Error("Error removing first expired raid helper");
+    throw Error('Error removing first expired raid helper');
   }
 }
 
@@ -233,7 +245,7 @@ export function isRaidHelperExpired(rhEvent: PostedRaidHelperEvent) {
 export async function recreateNextWeekRaidHelper(
   channelIdToRecreateRh: string,
   removedEventStartTime: number,
-  raidHelperTitleToRecreate?: string
+  raidHelperTitleToRecreate?: string,
 ) {
   try {
     const removedEventStartTimeMs = removedEventStartTime * 1000;
@@ -259,22 +271,22 @@ export async function recreateNextWeekRaidHelper(
       Number(process.env.RAID_HOUR_START as string),
       Number(process.env.RAID_MINUTE_START as string),
       0,
-      0
+      0,
     ); // Set hours and minutes
 
     const nextRaidDateUnix = String(nextRaidDate.getTime() / 1000);
 
     await createRaidHelperEvent(channelIdToRecreateRh, nextRaidDateUnix, raidHelperTitleToRecreate);
     console.log(
-      "Next raid created on:",
-      nextRaidDate.toLocaleString("fr-FR", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+      'Next raid created on:',
+      nextRaidDate.toLocaleString('fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
     );
 
     return nextRaidDate;
@@ -282,71 +294,65 @@ export async function recreateNextWeekRaidHelper(
     if (e instanceof Error) {
       throw Error(`Error recreating next week raid helper: ${e.message}`);
     }
-    throw Error("Error recreating next week raid helper");
+    throw Error('Error recreating next week raid helper');
   }
 }
 
 export async function recreateRaidHelperChannelThread(
   client: Client,
   channelIdToRecreateRh: string,
-  raidDate: Date
+  raidDate: Date,
 ) {
   try {
     const channel = await getDiscordChannel(client, channelIdToRecreateRh);
 
     if (!channel) {
-      throw Error("Channel not found");
+      throw Error('Channel not found');
     }
 
     if (!channel.isSendable()) {
-      throw Error("Channel is not a text channel");
+      throw Error('Channel is not a text channel');
     }
 
     const channelMessages = await channel.messages.fetch();
     const raidHelperMessage = channelMessages.find(
-      async (message) => message.author.id === process.env.RAID_HELPER_ID
+      async (message) => message.author.id === process.env.RAID_HELPER_ID,
     );
 
     if (!raidHelperMessage) {
-      throw Error("Raid helper message not found");
+      throw Error('Raid helper message not found');
     }
 
     const thread = await raidHelperMessage.startThread({
-      name: raidDate.toLocaleString("fr-FR", {
-        day: "numeric",
-        year: "numeric",
-        month: "numeric",
+      name: raidDate.toLocaleString('fr-FR', {
+        day: 'numeric',
+        year: 'numeric',
+        month: 'numeric',
       }),
     });
 
-    const raiderRole = await getDiscordRoleByName(
-      client,
-      process.env.RAIDER_ROLE_NAME as string
-    );
+    const raiderRole = await getDiscordRoleByName(client, process.env.RAIDER_ROLE_NAME as string);
 
     await thread.send(roleMention(raiderRole.id));
   } catch (e) {
     if (e instanceof Error) {
-      console.error("Error recreating raid helper channel thread:", e.message);
+      console.error('Error recreating raid helper channel thread:', e.message);
     }
-    throw Error("Error recreating raid helper channel thread");
+    throw Error('Error recreating raid helper channel thread');
   }
 }
 
-export async function pingOfficersWithBotFailure(
-  client: Client,
-  failedTaskDescription: string
-) {
+export async function pingOfficersWithBotFailure(client: Client, failedTaskDescription: string) {
   try {
     const guildOfficers = await getAllOfficersMembers(client, true);
     for (const [, officer] of guildOfficers) {
       await officer.send(
-        `Bonjour officier,\n\nJe viens de rencontrer un problème technique sur le job suivant:\n${failedTaskDescription}\n\nIl est possible que le job ce soit arrêté en plein milieu, merci de vérifier ce qu'il s'est passé sur le discord et de finir à la main.\n\nN'oubliez pas de ping Natema pour lui signaler ce problème :).`
+        `Bonjour officier,\n\nJe viens de rencontrer un problème technique sur le job suivant:\n${failedTaskDescription}\n\nIl est possible que le job ce soit arrêté en plein milieu, merci de vérifier ce qu'il s'est passé sur le discord et de finir à la main.\n\nN'oubliez pas de ping Natema pour lui signaler ce problème :).`,
       );
     }
   } catch (e) {
     if (e instanceof Error) {
-      console.error("Error in pingOfficersWithBotFailure:", e.message);
+      console.error('Error in pingOfficersWithBotFailure:', e.message);
     }
   }
 }
@@ -355,13 +361,11 @@ export async function pingOfficersWithMessage(client: Client, message: string) {
   try {
     const guildOfficers = await getAllOfficersMembers(client, true);
     for (const [, officer] of guildOfficers) {
-      await officer.send(
-        message
-      );
+      await officer.send(message);
     }
   } catch (e) {
     if (e instanceof Error) {
-      console.error("Error in pingOfficersWithMessage:", e.message);
+      console.error('Error in pingOfficersWithMessage:', e.message);
     }
   }
 }
@@ -370,12 +374,10 @@ export async function pingRaidLeaderWithMessage(client: Client, message: string)
   try {
     const raidLeader = await getRaidLeaderUser(client);
 
-    await raidLeader.send(
-      message
-    );
+    await raidLeader.send(message);
   } catch (e) {
     if (e instanceof Error) {
-      console.error("Error in pingRaidLeaderWithMessage:", e.message);
+      console.error('Error in pingRaidLeaderWithMessage:', e.message);
     }
   }
 }

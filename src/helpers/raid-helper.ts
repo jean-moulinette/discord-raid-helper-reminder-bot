@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from 'axios';
 
 export type PostedRaidHelperEvent = {
   color: string;
@@ -35,16 +35,16 @@ export async function fetchRaidHelperEventSignUps(rhEventId: string) {
       {
         headers: {
           Authorization: `${process.env.RAID_HELPER_API_KEY}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-      }
+      },
     );
 
     const eventData = response.data;
     const signUps = eventData.signUps;
     return signUps;
   } catch (error) {
-    console.error("Error fetching event data from Raid-Helper:", error);
+    console.error('Error fetching event data from Raid-Helper:', error);
     console.log('Retrying in 1 minute...');
 
     // Retry after 1 minute if the first attempt fails
@@ -57,9 +57,9 @@ export async function fetchRaidHelperEventSignUps(rhEventId: string) {
               {
                 headers: {
                   Authorization: `${process.env.RAID_HELPER_API_KEY}`,
-                  "Content-Type": "application/json",
+                  'Content-Type': 'application/json',
                 },
-              }
+              },
             );
 
             const eventData = response.data;
@@ -93,9 +93,9 @@ export async function fetchRaidHelperPostedEvents() {
       {
         headers: {
           Authorization: `${process.env.RAID_HELPER_API_KEY}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-      }
+      },
     );
     const events = response.data.postedEvents;
     return events;
@@ -103,28 +103,25 @@ export async function fetchRaidHelperPostedEvents() {
     if (e instanceof Error) {
       throw Error(`Error fetching events from Raid-Helper ${e.message}`);
     }
-    throw Error("Error fetching events from Raid-Helper");
+    throw Error('Error fetching events from Raid-Helper');
   }
 }
 
 export async function deleteRaidHelperEvent(eventId: string) {
   try {
-    const response = await axios.delete(
-      `https://raid-helper.dev/api/v2/events/${eventId}`,
-      {
-        headers: {
-          Authorization: `${process.env.RAID_HELPER_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await axios.delete(`https://raid-helper.dev/api/v2/events/${eventId}`, {
+      headers: {
+        Authorization: `${process.env.RAID_HELPER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
     return response.status;
   } catch (e) {
     if (e instanceof Error) {
       throw Error(`Error deleting event from Raid-Helper ${e.message}`);
     }
-    throw Error("Error deleting event from Raid-Helper");
+    throw Error('Error deleting event from Raid-Helper');
   }
 }
 
@@ -146,9 +143,9 @@ export async function createRaidHelperEvent(channelId: string, date: string, tit
       {
         headers: {
           Authorization: `${process.env.RAID_HELPER_API_KEY}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-      }
+      },
     );
 
     return response.status;
@@ -157,6 +154,6 @@ export async function createRaidHelperEvent(channelId: string, date: string, tit
       throw Error(`Error creating event in Raid-Helper ${e.message}`);
     }
 
-    throw Error("Error creating event in Raid-Helper");
+    throw Error('Error creating event in Raid-Helper');
   }
 }

@@ -1,4 +1,5 @@
-export const AZEROTH_NEWS_GENERATOR_SYSTEM_PROMPT = "Tu es un community manager français pour world of warcraft cataclysm. Ton rôle est de transformer l'actualité mondiale en nouvelles d'Azeroth, en utilisant le lore et les personnages de WoW. Sois précis, concis et créatif dans tes adaptations. Ton public est la communauté francophone de WoW."
+export const AZEROTH_NEWS_GENERATOR_SYSTEM_PROMPT =
+  "Tu es un community manager français pour world of warcraft cataclysm. Ton rôle est de transformer l'actualité mondiale en nouvelles d'Azeroth, en utilisant le lore et les personnages de WoW. Sois précis, concis et créatif dans tes adaptations. Ton public est la communauté francophone de WoW.";
 export const AZEROTH_NEWS_GENERATOR_USER_PROMPT = (worldNews: string) => `
 
 Voici les nouvelles du jour:
@@ -26,7 +27,8 @@ ${worldNews}
 Génère maintenant le bulletin d'informations en respectant scrupuleusement ces consignes.
 `;
 
-export const WOLRD_NEWS_GENERATOR_SYSTEM_PROMPT = "Tu es un bot journaliste français. Ton rôle est de récuperer les nouvelles mondiales."
+export const WOLRD_NEWS_GENERATOR_SYSTEM_PROMPT =
+  'Tu es un bot journaliste français. Ton rôle est de récuperer les nouvelles mondiales.';
 export const WOLRD_NEWS_GENERATOR_USER_PROMPT = `
 Consulte les 4 à 5 principales actualités mondiales du jour et rédige un résumé concis de chaque nouvelle. Suis ces directives :
 

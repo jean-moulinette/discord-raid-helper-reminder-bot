@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Partials } from "discord.js";
+import { Client, GatewayIntentBits, Partials } from 'discord.js';
 
 export function getDiscordClient() {
   return new Client({
@@ -8,17 +8,12 @@ export function getDiscordClient() {
       GatewayIntentBits.GuildMembers,
       GatewayIntentBits.DirectMessages,
     ],
-    partials: [
-      Partials.Message,
-      Partials.Channel,
-      Partials.Reaction,
-      Partials.User,
-    ],
+    partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User],
   });
 }
 
 export function onDiscordClientError(error: Error) {
-  console.error("Discord client error:", error);
+  console.error('Discord client error:', error);
   throw error;
 }
 export async function getGuild(client: Client) {
@@ -26,7 +21,7 @@ export async function getGuild(client: Client) {
     const guild = client.guilds.fetch(process.env.GUILD_ID as string);
 
     if (!guild) {
-      throw Error("Cannot fetch your discord server, verify your GUILD_ID");
+      throw Error('Cannot fetch your discord server, verify your GUILD_ID');
     }
 
     return guild;
@@ -34,7 +29,7 @@ export async function getGuild(client: Client) {
     if (e instanceof Error) {
       throw Error(`Error fetching guild ${e.message}`);
     }
-    throw Error("Error fetching guild");
+    throw Error('Error fetching guild');
   }
 }
 
@@ -44,20 +39,20 @@ export async function getAllRaidersMembers(client: Client, shouldFilterAbsentPla
     await guild.members.fetch();
 
     const guildRaiderRole = guild.roles.cache.find(
-      ({ name }) => name === (process.env.RAIDER_ROLE_NAME as string)
+      ({ name }) => name === (process.env.RAIDER_ROLE_NAME as string),
     );
     const guildAbsentRaiderRole = guild.roles.cache.find(
-      ({ name }) => name === (process.env.ABSENT_RAIDER_ROLE_NAME as string)
+      ({ name }) => name === (process.env.ABSENT_RAIDER_ROLE_NAME as string),
     );
 
     if (!guildRaiderRole) {
       throw Error(
-        "Raider role not found in server, make sure the role you configured for the bot, is matching with the raider role text you got in your discord server"
+        'Raider role not found in server, make sure the role you configured for the bot, is matching with the raider role text you got in your discord server',
       );
     }
     if (!guildAbsentRaiderRole) {
       throw Error(
-        "Absent raider role not found in server, make sure the role you configured for the bot, is matching with the absent raider role text you got in your discord server"
+        'Absent raider role not found in server, make sure the role you configured for the bot, is matching with the absent raider role text you got in your discord server',
       );
     }
 
@@ -67,7 +62,9 @@ export async function getAllRaidersMembers(client: Client, shouldFilterAbsentPla
       }
 
       if (shouldFilterAbsentPlayers) {
-        const memberIsAbsent = guildAbsentRaiderRole.members.some(absentMember => absentMember.id === member.id);
+        const memberIsAbsent = guildAbsentRaiderRole.members.some(
+          (absentMember) => absentMember.id === member.id,
+        );
         return !memberIsAbsent;
       }
 
@@ -79,7 +76,7 @@ export async function getAllRaidersMembers(client: Client, shouldFilterAbsentPla
     if (e instanceof Error) {
       throw Error(`Error fetching raiders members ${e.message}`);
     }
-    throw Error("Error fetching raiders members");
+    throw Error('Error fetching raiders members');
   }
 }
 
@@ -89,12 +86,12 @@ export async function getAllAbsentPlayers(client: Client) {
     await guild.members.fetch();
 
     const absentRole = guild.roles.cache.find(
-      ({ name }) => name === (process.env.ABSENT_RAIDER_ROLE_NAME as string)
+      ({ name }) => name === (process.env.ABSENT_RAIDER_ROLE_NAME as string),
     );
 
     if (!absentRole) {
       throw Error(
-        "Absent role not found in server, make sure the role you configured for the bot, is matching with the absent role text you got in your discord server"
+        'Absent role not found in server, make sure the role you configured for the bot, is matching with the absent role text you got in your discord server',
       );
     }
 
@@ -103,7 +100,7 @@ export async function getAllAbsentPlayers(client: Client) {
     if (e instanceof Error) {
       throw Error(`Error fetching absent players ${e.message}`);
     }
-    throw Error("Error fetching absent players");
+    throw Error('Error fetching absent players');
   }
 }
 
@@ -113,12 +110,12 @@ export async function getRaidLeaderUser(client: Client) {
     await guild.members.fetch();
 
     const raidLeader = guild.members.cache.find(
-      ({ user }) => user.id === process.env.RAID_LEADER_ID
+      ({ user }) => user.id === process.env.RAID_LEADER_ID,
     );
 
     if (!raidLeader) {
       throw Error(
-        "Raid leader not found in server, make sure the ID you configured for the bot, is matching with the raid leader ID you got in your discord server"
+        'Raid leader not found in server, make sure the ID you configured for the bot, is matching with the raid leader ID you got in your discord server',
       );
     }
 
@@ -127,7 +124,7 @@ export async function getRaidLeaderUser(client: Client) {
     if (e instanceof Error) {
       throw Error(`Error fetching raid leader ${e.message}`);
     }
-    throw Error("Error fetching raid leader");
+    throw Error('Error fetching raid leader');
   }
 }
 
@@ -137,43 +134,43 @@ export async function getAllOfficersMembers(client: Client, shouldFilterAbsentPl
     await guild.members.fetch();
 
     const officersRole = guild.roles.cache.find(
-      ({ name }) => name === (process.env.OFFICER_ROLE_NAME as string)
+      ({ name }) => name === (process.env.OFFICER_ROLE_NAME as string),
     );
     const absentRole = guild.roles.cache.find(
-      ({ name }) => name === (process.env.ABSENT_RAIDER_ROLE_NAME as string)
+      ({ name }) => name === (process.env.ABSENT_RAIDER_ROLE_NAME as string),
     );
 
     if (!officersRole) {
       throw Error(
-        "Officer role not found in server, make sure the role you configured for the bot, is matching with the officer role text you got in your discord server"
+        'Officer role not found in server, make sure the role you configured for the bot, is matching with the officer role text you got in your discord server',
       );
     }
     if (!absentRole) {
       throw Error(
-        "Absent not found in server, make sure the role you configured for the bot, is matching with the absent officer role text you got in your discord server"
+        'Absent not found in server, make sure the role you configured for the bot, is matching with the absent officer role text you got in your discord server',
       );
     }
 
-    const officersMembers = officersRole.members.filter(
-      (member) => {
-        if (member.user.bot) {
-          return false;
-        }
-
-        if (shouldFilterAbsentPlayers) {
-          const memberIsAbsent = absentRole.members.some(absentMember => absentMember.id === member.id);
-          return !memberIsAbsent;
-        }
-        return true;
+    const officersMembers = officersRole.members.filter((member) => {
+      if (member.user.bot) {
+        return false;
       }
-    );
+
+      if (shouldFilterAbsentPlayers) {
+        const memberIsAbsent = absentRole.members.some(
+          (absentMember) => absentMember.id === member.id,
+        );
+        return !memberIsAbsent;
+      }
+      return true;
+    });
 
     return officersMembers;
   } catch (e) {
     if (e instanceof Error) {
       throw Error(`Error fetching officers members ${e.message}`);
     }
-    throw Error("Error fetching officers members");
+    throw Error('Error fetching officers members');
   }
 }
 
@@ -183,14 +180,11 @@ export async function getRaidHelpersChannels(client: Client) {
 
     const channels = await guild.channels.fetch();
     const raidChannels = channels?.filter(
-      (channel) =>
-        channel?.parentId === (process.env.RAID_CATEGORY_ID as string)
+      (channel) => channel?.parentId === (process.env.RAID_CATEGORY_ID as string),
     );
 
     if (!raidChannels.size) {
-      throw Error(
-        "Could not find any channel for the raid category ID you configured"
-      );
+      throw Error('Could not find any channel for the raid category ID you configured');
     }
 
     return raidChannels;
@@ -198,7 +192,7 @@ export async function getRaidHelpersChannels(client: Client) {
     if (e instanceof Error) {
       throw Error(`Error fetching raid channels ${e.message}`);
     }
-    throw Error("Error fetching raid channels");
+    throw Error('Error fetching raid channels');
   }
 }
 
@@ -209,7 +203,7 @@ export async function getDiscordChannel(client: Client, channelId: string) {
     if (e instanceof Error) {
       throw Error(`Error fetching channel ${e.message}`);
     }
-    throw Error("Error fetching channel");
+    throw Error('Error fetching channel');
   }
 }
 
@@ -227,6 +221,6 @@ export async function getDiscordRoleByName(client: Client, roleName: string) {
     if (e instanceof Error) {
       throw Error(`Error fetching role ${e.message}`);
     }
-    throw Error("Error fetching role");
+    throw Error('Error fetching role');
   }
 }
