@@ -1,4 +1,4 @@
-import { InteractionContextType, SlashCommandBuilder } from 'discord.js';
+import { ChannelType, InteractionContextType, SlashCommandBuilder } from 'discord.js';
 
 export const COMMANDS_IDENTIFIERS = {
   RH_DELETE_HERE: 'rh-delete-here',
@@ -18,3 +18,8 @@ const TAG_MISSING_SIGNEES_COMMAND = new SlashCommandBuilder()
   .setContexts(InteractionContextType.Guild);
 
 export const COMMANDS = [RH_DELETE_HERE_COMMAND, TAG_MISSING_SIGNEES_COMMAND];
+export const ALLOWED_CHANNEL_TYPES_FOR_COMMANDS = [
+  ChannelType.GuildText,
+  ChannelType.PublicThread,
+  ChannelType.PrivateThread,
+];

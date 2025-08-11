@@ -2,7 +2,10 @@ import axios from 'axios';
 import { retryOnceAfterDelay } from './async';
 import type { PostedRaidHelperEvent, RhEventResponse } from './raid-helper.types';
 
-export async function fetchRaidHelperEventSignUps(rhEventId: string) {
+export async function fetchRaidHelperEventSignUps(
+  rhEventId: string,
+  onFetchRaidHelperEventSignUpsRetry?: () => void,
+) {
   try {
     const response = await retryOnceAfterDelay(
       async () =>
@@ -13,8 +16,10 @@ export async function fetchRaidHelperEventSignUps(rhEventId: string) {
           },
         }),
       {
-        onRetry: (e) =>
-          console.error(`Fetching event data from Raid-Helper ID: [${rhEventId}] failed. ${e}`),
+        onRetry: (e) => {
+          onFetchRaidHelperEventSignUpsRetry?.();
+          console.error(`Fetching event data from Raid-Helper ID: [${rhEventId}] failed. ${e}`);
+        },
       },
     );
 
@@ -35,7 +40,9 @@ type RhEventsResponse = {
   postedEvents: PostedRaidHelperEvent[];
 };
 
-export async function fetchRaidHelperPostedEvents() {
+export async function fetchRaidHelperPostedEvents(
+  onFetchRaidHelpersPostedEventsRetry?: () => void,
+) {
   try {
     const response = await retryOnceAfterDelay(
       async () =>
@@ -50,6 +57,7 @@ export async function fetchRaidHelperPostedEvents() {
         ),
       {
         onRetry: (e) => {
+          onFetchRaidHelpersPostedEventsRetry?.();
           console.error(`Fetching all posted events from Raid-Helper failed. ${e}`);
         },
       },

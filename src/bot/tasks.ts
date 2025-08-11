@@ -45,7 +45,10 @@ export async function logPoliceForMainRaidsOfTheWeek(client: Client) {
     }
 
     nextTwoMainRaids.forEach(async (raid) => {
-      await tagMissingSignees(client, raid);
+      await tagMissingSignees({
+        client,
+        nextRaid: raid,
+      });
     });
   } catch (e) {
     if (e instanceof Error) {
@@ -84,7 +87,10 @@ export async function logPoliceWatchForRaidInTwoDays(client: Client) {
     }
 
     // Tag missing signees in raid helper channel and send report to officers
-    await tagMissingSignees(client, nextRaid);
+    await tagMissingSignees({
+      client,
+      nextRaid,
+    });
   } catch (e) {
     if (e instanceof Error) {
       console.error('Error in logPoliceWatch:', e.message);

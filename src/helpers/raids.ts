@@ -55,7 +55,17 @@ export function getNextTwoMainRaids(listOfRaids: PostedRaidHelperEvent[]) {
   return twoNextRaids;
 }
 
-export async function tagMissingSignees(client: Client, nextRaid: PostedRaidHelperEvent) {
+type TagMissingSigneesParams = {
+  client: Client;
+  nextRaid: PostedRaidHelperEvent;
+  onRaidHelperHandlingRetry?: () => void;
+};
+
+export async function tagMissingSignees({
+  client,
+  nextRaid,
+  onRaidHelperHandlingRetry,
+}: TagMissingSigneesParams) {
   try {
     const guildRaiders = await getAllRaidersMembers(client, true);
     const guildOfficers = await getAllOfficersMembers(client, true);
@@ -68,7 +78,7 @@ export async function tagMissingSignees(client: Client, nextRaid: PostedRaidHelp
     }
 
     const rhEventDiscordMessage = await rhEventDiscordChannel.messages.fetch(nextRaid.id);
-    const rhSignUps = await fetchRaidHelperEventSignUps(nextRaid.id);
+    const rhSignUps = await fetchRaidHelperEventSignUps(nextRaid.id, onRaidHelperHandlingRetry);
     const rhDiscordThread = rhEventDiscordMessage.thread;
 
     if (!rhDiscordThread || !rhDiscordThread.isSendable()) {

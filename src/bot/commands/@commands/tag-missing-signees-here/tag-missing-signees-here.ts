@@ -1,4 +1,9 @@
-import type { CacheType, ChatInputCommandInteraction, Client } from 'discord.js';
+import {
+  ChannelType,
+  type CacheType,
+  type ChatInputCommandInteraction,
+  type Client,
+} from 'discord.js';
 import { fetchRaidHelperPostedEvents } from '../../../../helpers/raid-helper';
 import { tagMissingSignees } from '../../../../helpers/raids';
 
@@ -14,9 +19,22 @@ async function tagMissingSigneesHere(
   }
 
   // Find the RH event in this channel
-  const events = await fetchRaidHelperPostedEvents();
+  const events = await fetchRaidHelperPostedEvents(async () => {
+    await interaction.editReply(
+      'Les serveurs Raid-Helper mettent un peu de temps à répondre pour trouver le raid actif. Nouvelle tentative dans 1 minute, ne quittez pas.',
+    );
+  });
   const raidEventsInThisChannel = events
-    .filter((e) => e.channelId === channel.id)
+    .filter((rhEvent) => {
+      if (channel.type === ChannelType.GuildText) {
+        return rhEvent.channelId === channel.id;
+      }
+      // If command is used in a thread, we need to check the parentId
+      if (channel.type === ChannelType.PublicThread || channel.type === ChannelType.PrivateThread) {
+        return rhEvent.channelId === channel.parentId;
+      }
+      return false;
+    })
     .sort((a, b) => b.startTime - a.startTime);
 
   if (raidEventsInThisChannel.length === 0) {
@@ -34,7 +52,15 @@ async function tagMissingSigneesHere(
   const raidEvent = raidEventsInThisChannel[0];
 
   try {
-    await tagMissingSignees(client, raidEvent);
+    await tagMissingSignees({
+      client,
+      nextRaid: raidEvent,
+      onRaidHelperHandlingRetry: async () => {
+        await interaction.editReply(
+          `Les serveurs Raid-Helper mettent un peu de temps à répondre pour récupérer les inscris sur le raid ${raidEvent.title}. Nouvelle tentative dans 1 minute, ne quittez pas.`,
+        );
+      },
+    });
 
     await interaction.editReply(
       'Notification des membres ayant oublié de notifier leur présence au Raid-Helper effectuée.',
