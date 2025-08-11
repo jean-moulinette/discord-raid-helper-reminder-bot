@@ -83,14 +83,8 @@ export async function logPoliceWatchForRaidInTwoDays(client: Client) {
       return;
     }
 
-    const { startTime } = nextRaid;
-    const raidDate = new Date(startTime * 1000);
-
-    // If next raid is on monday, we need to check tag missing signees for the next raid
-    if (raidDate.getDay() === 1) {
-      // Tag missing signees in raid helper channel and send report to officers
-      await tagMissingSignees(client, nextRaid);
-    }
+    // Tag missing signees in raid helper channel and send report to officers
+    await tagMissingSignees(client, nextRaid);
   } catch (e) {
     if (e instanceof Error) {
       console.error('Error in logPoliceWatch:', e.message);

@@ -5,7 +5,7 @@ import {
   CRON_SCHEDULE_EVERY_DAYS_AT_6PM,
   CRON_SCHEDULE_EVERY_DAYS_AT_MIDNIGHT,
   CRON_SCHEDULE_EVERY_DAYS_AT_NOON,
-  CRON_SCHEDULE_EVERYTUESDAY_AT_6PM_AND_1_MINUTE,
+  CRON_SCHEDULE_EVERY_TUESDAY_AT_6PM_AND_1_MINUTE,
 } from './consts';
 import {
   cleanUpRaidHelpersChannel,
@@ -21,9 +21,11 @@ export function startBot(client: Client) {
   console.log(`Bot successfully logged in as "${client.user.displayName}"!`);
 
   // Register slash commands and handlers
-  registerApplicationCommands(client).then(() => attachInteractionHandlers(client)).catch((e) => {
-    console.error('Failed to register application commands:', e);
-  });
+  registerApplicationCommands(client)
+    .then(() => attachInteractionHandlers(client))
+    .catch((e) => {
+      console.error('Failed to register application commands:', e);
+    });
 
   // Schedule job to notify about missing signees in raid helper for next raid occurins in 2 days
   cron.schedule(CRON_SCHEDULE_EVERY_DAYS_AT_6PM, () => {
@@ -38,7 +40,7 @@ export function startBot(client: Client) {
   });
 
   // Sechedule job to notify about main raids of the week
-  cron.schedule(CRON_SCHEDULE_EVERYTUESDAY_AT_6PM_AND_1_MINUTE, () => {
+  cron.schedule(CRON_SCHEDULE_EVERY_TUESDAY_AT_6PM_AND_1_MINUTE, () => {
     console.log('Running log police for main raids of the week job');
     logPoliceForMainRaidsOfTheWeek(client);
   });
