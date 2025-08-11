@@ -1,5 +1,5 @@
 import { type Client, ChannelType } from 'discord.js';
-import { ALLOWED_CHANNEL_TYPES_FOR_COMMANDS, COMMANDS } from './consts';
+import { COMMANDS } from './consts';
 import { memberIsOfficer } from '../../helpers/discord';
 import { commandController } from './controller';
 
@@ -39,7 +39,16 @@ export function attachInteractionHandlers(client: Client) {
       }
 
       // Only allow in text channels within the raid category
-      if (!ALLOWED_CHANNEL_TYPES_FOR_COMMANDS.includes(channel.type)) {
+      const requiredCategoryId = process.env.RAID_CATEGORY_ID as string;
+
+      const inRequiredCategory =
+        channel.type === ChannelType.GuildText
+          ? channel.parentId === requiredCategoryId
+          : channel.type === ChannelType.PublicThread || channel.type === ChannelType.PrivateThread
+            ? channel.parent?.parentId === requiredCategoryId
+            : false;
+
+      if (!inRequiredCategory) {
         await interaction.reply({
           content: 'Cette commande doit être utilisée dans un channel ou thread de raid.',
           ephemeral: true,
