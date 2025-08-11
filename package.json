@@ -7,7 +7,10 @@
     "npm": "10.9.0"
   },
   "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prestart": "npm run clean",
     "start": "tsc && node dist/index.js",
+    "predev": "npm run clean",
     "dev": "tsc --watch",
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write .",
