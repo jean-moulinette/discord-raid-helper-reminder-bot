@@ -85,6 +85,13 @@ export async function logPoliceWatchForRaidInTwoDays(client: Client) {
       console.log('No raid found in 2 days. Exiting...');
       return;
     }
+    const { startTime } = nextRaid;
+    const raidDate = new Date(startTime * 1000);
+
+    // If next raid is on thursday, we need to skip the tag missing signees check since it's already done, during the tuesday main raids check
+    if (raidDate.getDay() === 4) {
+      return;
+    }
 
     // Tag missing signees in raid helper channel and send report to officers
     await tagMissingSignees({
